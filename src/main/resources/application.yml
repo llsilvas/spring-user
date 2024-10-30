@@ -1,0 +1,27 @@
+server:
+  port: 8091
+spring:
+  application:
+    name: spring-user
+  config:
+    import: optional:configserver:http://${SPRING_CONFIG_SERVER:localhost}:8888 # URL do Config Server
+  cloud:
+    config:
+      fail-fast: true
+      retry:
+        max-attempts: 6
+        initial-interval: 2000
+        multiplier: 1.5
+        max-interval: 10000
+
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          issuer-uri: http://localhost:8090/realms/myrealm
+
+logging:
+  level:
+    root: INFO
+    org.springframework.web: INFO
+    br.dev.leandro.spring.cloud.user: INFO
