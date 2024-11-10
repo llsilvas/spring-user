@@ -16,6 +16,7 @@ services:
       - SPRING_PROFILES_ACTIVE=${SPRING_PROFILES_ACTIVE}
       - SPRING_CONFIG_SERVER=${SPRING_CONFIG_SERVER}
       - LOKI_URL="loki"
+      - SPRING_RABBITMQ_HOST=${SPRING_RABBITMQ_HOST}
     restart: unless-stopped
     networks:
       - labs
