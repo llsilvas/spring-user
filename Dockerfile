@@ -1,50 +1,40 @@
-FROM eclipse-temurin:21 as builder
-# First stage : Extract the layers
-WORKDIR /@project.name@
+# Stage 1: Build stage
+FROM maven:3.9.5-eclipse-temurin-21 as builder
+WORKDIR /app
 
-#COPY mvnw .
-#COPY .mvn .mvn
-#COPY pom.xml .
-#COPY src src
-#RUN chmod +x mvnw
-#RUN ./mvnw clean package -DskipTests
+# Copia o pom.xml e baixa as dependências
+COPY pom.xml .
+RUN mvn dependency:go-offline -B
 
-WORKDIR /@project.name@
+# Copia o código-fonte
+COPY src ./src
 
-ADD ./ /@project.name@
+# Compila o projeto e gera o JAR
+RUN mvn clean package -DskipTests
 
-ARG JAR_FILE=*.jar
-COPY ${JAR_FILE} app.jar
-RUN java -Djarmode=layertools -jar app.jar extract
+# Extrai as camadas usando o novo modo tools
+RUN java -Djarmode=tools -jar target/*.jar extract --layers --launcher
 
-FROM eclipse-temurin:21-jre-jammy as final
-# Cria o usuário e grupo spring
-RUN addgroup --system spring && adduser --system --ingroup spring spring
+# Stage 2: Runtime stage
+FROM eclipse-temurin:21-jre-jammy as runtime
+WORKDIR /app
 
-# Instala tzdata para gerenciar timezones
-RUN apt-get update && apt-get install -y tzdata
+# Copia o JAR da aplicação
+COPY --from=builder app/target/*.jar app.jar
 
-# Define o timezone desejado enquanto ainda é root
-RUN ln -snf /usr/share/zoneinfo/America/Sao_Paulo /etc/localtime && echo "America/Sao_Paulo" > /etc/timezone
+# Copia as camadas extraídas
+COPY --from=builder /app/@project.name@/dependencies/ ./
+COPY --from=builder /app/@project.name@/spring-boot-loader/ ./
+COPY --from=builder /app/@project.name@/snapshot-dependencies/ ./
+COPY --from=builder /app/@project.name@/application/ ./
 
-# Cria o diretório de trabalho e atribui permissões ao usuário criado
-WORKDIR /@project.name@
-RUN chown -R spring:spring /@project.name@
-
-# Altera o usuário para o usuário não root
-USER spring:spring
-
-## Second stage : Copy the extracted layers
-COPY --from=builder @project.name@/dependencies/ ./
-COPY --from=builder @project.name@/spring-boot-loader/ ./
-COPY --from=builder @project.name@/snapshot-dependencies/ ./
-COPY --from=builder @project.name@/application/ ./
-COPY --from=builder @project.name@/target/*.jar app.jar
-
-ENV JAVA_OPTS=""
+# Define variáveis de ambiente
 ENV SPRING_PROFILES_ACTIVE=""
 ENV LOKI_URL="loki"
+ENV KEYCLOAK_URL=${KEYCLOAK_URL}
 
+# Exposição da porta da aplicação
 EXPOSE 8091
 
-ENTRYPOINT ["sh", "-c", "java $JAVA_OPTS -jar app.jar --spring.profiles.active=${SPRING_PROFILES_ACTIVE}"]
+# Inicia a aplicação com o launcher do Spring Boot
+ENTRYPOINT ["java", "-jar", "app.jar", "--spring.profiles.active=${SPRING_PROFILES_ACTIVE}"]
