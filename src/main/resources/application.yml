@@ -1,13 +1,27 @@
 server:
-  port: 8091
+  port: 8081
 spring:
   application:
     name: spring-user
   config:
     import: optional:configserver:http://${SPRING_CONFIG_SERVER:localhost}:8888 # URL do Config Server
 
-#  security:
-#    oauth2:
-#      resourceserver:
-#        jwt:
-#          jwk-set-uri: http://${KEYCLOAK_URL:localhost:8090}/realms/myrealm/protocol/openid-connect/certs
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          jwk-set-uri: http://${KEYCLOAK_URL:localhost:8443}/realms/event-management/protocol/openid-connect/certs
+          issuer-uri: http://${KEYCLOAK_URL:localhost:8443}/realms/event-management
+
+
+keycloak:
+  admin:
+    auth-server-url: http://localhost:8443/auth
+    realm: event-management
+    resource: user-service
+    credentials:
+      secret: dmGWTPHMTOLW83ctuvVPsN0OnrCE9f8B
+    use-resource-role-mappings: true
+    bearer-only: true
+
+debug: true

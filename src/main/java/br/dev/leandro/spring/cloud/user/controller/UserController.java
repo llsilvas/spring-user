@@ -1,34 +1,43 @@
 package br.dev.leandro.spring.cloud.user.controller;
 
-import br.dev.leandro.spring.cloud.user.service.UserService;
-import br.dev.leandro.spring.cloud.user.model.UserDto;
-import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
-@RequestMapping(value = "/users")
+@RequestMapping("/api/users")
 public class UserController {
 
-    @Autowired
-    private UserService userService;
-
-    @GetMapping("/admin/hello")
-    public String adminHello() {
-        return "Olá, Admin!";
+    // Endpoint Público
+    @GetMapping("/public/info")
+    public ResponseEntity<String> getPublicInfo() {
+        return ResponseEntity.ok("Informação pública acessível a todos.");
     }
 
-    @GetMapping("/user/hello")
-    public String userHello() {
-        return userService.getMsgUsuario();
+    // Endpoint Protegido para Administradores
+    @GetMapping("/admin/all")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<String> getAllUsers() {
+        return ResponseEntity.ok("Lista de todos os usuários (Apenas admin).");
     }
 
-    @GetMapping("/useradmin/hello")
-    public String userAdminHello() {
-        return "Olá, UserAdmin!";
+    // Endpoint Protegido para Organizadores
+    @GetMapping("/organizador/events")
+    @PreAuthorize("hasRole('ORGANIZADOR')")
+    public ResponseEntity<String> getOrganizadorEvents() {
+        return ResponseEntity.ok("Eventos organizados (Apenas organizadores).");
     }
 
-    @PostMapping("/user/usuario")
-    public String getUsuario(@RequestBody UserDto user){
-        return "O nome do usuário é: " + user.name();
+    // Endpoint Protegido para Participantes
+    @GetMapping("/participante/profile")
+    @PreAuthorize("hasRole('PARTICIPANTE')")
+    public ResponseEntity<String> getParticipantProfile() {
+        return ResponseEntity.ok("Perfil do participante (Apenas participantes).");
+    }
+
+    // Endpoint Protegido para Autenticados
+    @GetMapping("/profile")
+    public ResponseEntity<String> getUserProfile() {
+        return ResponseEntity.ok("Perfil do usuário autenticado.");
     }
 }

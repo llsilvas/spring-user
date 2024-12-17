@@ -1,0 +1,33 @@
+package br.dev.leandro.spring.cloud.user.security;
+
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.core.convert.converter.Converter;
+import org.springframework.security.authentication.AbstractAuthenticationToken;
+import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.oauth2.jwt.Jwt;
+import reactor.core.publisher.Mono;
+
+import java.util.*;
+import java.util.stream.Collectors;
+
+@Slf4j
+public class CustomJwtAuthenticationConverter implements Converter<Jwt, Collection<GrantedAuthority>> {
+
+    @Override
+    public Collection<GrantedAuthority> convert(Jwt jwt) {
+        // Extrai as roles do realm_access no token
+        Map<String, Object> realmAccess = jwt.getClaimAsMap("realm_access");
+        if (realmAccess == null || realmAccess.get("roles") == null) {
+            return Collections.emptyList();
+        }
+
+        List<String> roles = ((List<String>) realmAccess.get("roles")).stream()
+                .map(String::toUpperCase)
+                .collect(Collectors.toList());
+
+        return roles.stream()
+                .map(role -> new SimpleGrantedAuthority("ROLE_" + role))
+                .collect(Collectors.toList());
+    }
+}
