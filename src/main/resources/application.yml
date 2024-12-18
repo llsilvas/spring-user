@@ -1,6 +1,8 @@
 server:
   port: 8081
 spring:
+  web:
+    ipv4-only: true
   application:
     name: spring-user
   config:
@@ -14,14 +16,14 @@ spring:
           issuer-uri: http://${KEYCLOAK_URL:localhost:8443}/realms/event-management
 
 
-keycloak:
-  admin:
-    auth-server-url: http://localhost:8443/auth
-    realm: event-management
-    resource: user-service
-    credentials:
-      secret: dmGWTPHMTOLW83ctuvVPsN0OnrCE9f8B
-    use-resource-role-mappings: true
-    bearer-only: true
+  # Configurações para o Keycloak Admin API
+  keycloak:
+    admin:
+      client-id: user-service-admin
+      client-secret: wcQ65Sna3z7xmXmDz5dUdZNdm9GIy8xL
+      auth-server-url: http://localhost:8443
+      realm: event-management
 
-debug: true
+logging:
+  level:
+    web: debug

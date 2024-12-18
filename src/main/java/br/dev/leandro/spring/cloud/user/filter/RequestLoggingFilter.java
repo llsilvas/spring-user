@@ -21,13 +21,13 @@ public class RequestLoggingFilter implements Filter {
         HttpServletRequest httpServletRequest = (HttpServletRequest) request;
 
         log.info("Request URI: {}", httpServletRequest.getRequestURI());
-        log.info("Request Headers:");
-        Enumeration<String> headerNames = httpServletRequest.getHeaderNames();
-
-        while (headerNames.hasMoreElements()) {
-            String headerName = headerNames.nextElement();
-            log.info(headerName + ": " + httpServletRequest.getHeader(headerName));
-        }
+//        log.info("Request Headers:");
+//        Enumeration<String> headerNames = httpServletRequest.getHeaderNames();
+//
+//        while (headerNames.hasMoreElements()) {
+//            String headerName = headerNames.nextElement();
+//            log.info(headerName + ": " + httpServletRequest.getHeader(headerName));
+//        }
 
         chain.doFilter(request, response);
     }
