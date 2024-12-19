@@ -25,6 +25,13 @@ public class UserController {
                 .onErrorResume(e -> Mono.just(ResponseEntity.status(500).body("Erro ao criar usuário: " + e.getMessage())));
     }
 
+    @PutMapping("/admin/{id}")
+    public Mono<ResponseEntity<String>> updateUser(@PathVariable("id") Long id, @RequestBody UserDto userDto) {
+        return userService.updateUser(id, userDto)
+                .then(Mono.just(ResponseEntity.status(HttpStatus.OK).body("Usuário atualizado com sucesso!"))
+                .onErrorResume(e -> Mono.just(ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Erro ao atualizar o usuário: " + e.getMessage()))));
+    }
+
     // Endpoint Público
     @GetMapping("/public/info")
     public ResponseEntity<String> getPublicInfo() {
