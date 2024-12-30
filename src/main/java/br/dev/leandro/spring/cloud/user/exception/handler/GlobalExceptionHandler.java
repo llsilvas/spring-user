@@ -41,6 +41,7 @@ public class GlobalExceptionHandler {
                 .build();
 
         log.error("Error exception: {}", errorResponse);
+        log.error("Exception: {}", e);
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponse);
     }
 

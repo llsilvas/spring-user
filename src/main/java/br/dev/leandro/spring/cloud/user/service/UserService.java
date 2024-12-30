@@ -1,13 +1,14 @@
 package br.dev.leandro.spring.cloud.user.service;
 
-import br.dev.leandro.spring.cloud.user.KeycloakProperties;
-import br.dev.leandro.spring.cloud.user.model.UserDto;
+import br.dev.leandro.spring.cloud.user.keycloak.KeycloakProperties;
+import br.dev.leandro.spring.cloud.user.exception.ResourceNotFoundException;
+import br.dev.leandro.spring.cloud.user.dto.UserDto;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
+import org.apache.tomcat.websocket.AuthenticationException;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.cloud.context.config.annotation.RefreshScope;
-import org.springframework.http.HttpStatusCode;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.BodyInserters;
@@ -54,7 +55,7 @@ public class UserService {
         return getAdminAccessToken()
                 .flatMap(token -> {
                     log.info("Token JWT obtido com sucesso: {}", token);
-                    return createRequest(token, "/admin/realms/{realm}/users",
+                    return createPostRequest(token, "/admin/realms/{realm}/users",
                             Map.of(
                                     "username", userDto.username(),
                                     "email", userDto.email(),
@@ -82,7 +83,7 @@ public class UserService {
                 });
     }
 
-    private WebClient.RequestHeadersSpec<?> createRequest(String token, String uri, Object body) {
+    private WebClient.RequestHeadersSpec<?> createPostRequest(String token, String uri, Object body) {
         return webClient.post()
                 .uri(uri, keycloakProperties.getRealm())
                 .header(AUTHORIZATION, BEARER + token)
@@ -115,7 +116,7 @@ public class UserService {
     }
 
 
-    public Mono<Void> updateUser(Long id, UserDto userDto) {
+    public Mono<Void> updateUser(String id, UserDto userDto) {
         return getAdminAccessToken()
                 .flatMap(token -> webClient.put()
                         .uri("/admin/realms/{realm}/users/{id}", keycloakProperties.getRealm(), id)
@@ -129,18 +130,32 @@ public class UserService {
                                 "enabled", true
                         ))
                         .retrieve()
-                        .onStatus(HttpStatusCode::isError, response -> response.bodyToMono(String.class)
-                                .flatMap(body -> Mono.error(new RuntimeException("Erro ao atualizar usuário: " + body))))
+                        .onStatus(HttpStatus.NOT_FOUND::equals, response -> {
+                            log.info("Usuário não encontrado.");
+                            return Mono.error(new ResourceNotFoundException("Usuário não encontrado."));
+                        })
+                        .onStatus(HttpStatus.FORBIDDEN::equals, response -> {
+                            log.info("Permissão negada para atualizar o usuário.");
+                            return Mono.error(new AuthenticationException("Permissão negada para atualizar o usuário."));
+                        })
+                        .onStatus(HttpStatus.UNAUTHORIZED::equals, response ->
+                                Mono.error(new RuntimeException("Token inválido ou expirado.")))
+                        .onStatus(HttpStatus.INTERNAL_SERVER_ERROR::equals, response ->
+                                Mono.error(new RuntimeException("Erro interno no Keycloak.")))
                         .bodyToMono(Void.class)
                         .then(setUserPassword(id, userDto.password(), token))
                 )
                 .onErrorResume(e -> {
-                    // Lógica de fallback ou logging
-                    return Mono.error(new RuntimeException("Falha ao atualizar usuário", e));
+                    if (e instanceof ResourceNotFoundException || e instanceof AuthenticationException) {
+                        return Mono.error(e); // Propaga a exceção original
+                    }
+                    log.error("Erro inesperado ao atualizar usuário: {}", e.getMessage(), e);
+                    return Mono.error(new RuntimeException("Exception: " + e.getMessage(), e));
                 });
+
     }
 
-    private Mono<Void> setUserPassword(Long id, String password, String token) {
+    private Mono<Void> setUserPassword(String id, String password, String token) {
         return webClient.put()
                 .uri("/admin/realms/{realm}/users/{id}/reset-password", keycloakProperties.getRealm(), id)
                 .header(AUTHORIZATION, BEARER + token)

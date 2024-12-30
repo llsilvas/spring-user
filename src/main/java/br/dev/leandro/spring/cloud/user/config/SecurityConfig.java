@@ -1,6 +1,6 @@
-package br.dev.leandro.spring.cloud.user.config.security;
+package br.dev.leandro.spring.cloud.user.config;
 
-import br.dev.leandro.spring.cloud.user.config.converter.CustomJwtAuthenticationConverter;
+import br.dev.leandro.spring.cloud.user.converter.CustomJwtAuthenticationConverter;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;

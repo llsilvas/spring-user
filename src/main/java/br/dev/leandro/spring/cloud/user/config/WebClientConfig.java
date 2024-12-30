@@ -1,6 +1,6 @@
 package br.dev.leandro.spring.cloud.user.config;
 
-import br.dev.leandro.spring.cloud.user.KeycloakProperties;
+import br.dev.leandro.spring.cloud.user.keycloak.KeycloakProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.web.reactive.function.client.WebClient;

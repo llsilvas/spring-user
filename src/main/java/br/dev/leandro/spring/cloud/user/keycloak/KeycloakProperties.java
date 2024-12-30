@@ -1,4 +1,4 @@
-package br.dev.leandro.spring.cloud.user;
+package br.dev.leandro.spring.cloud.user.keycloak;
 
 import lombok.Getter;
 import lombok.Setter;

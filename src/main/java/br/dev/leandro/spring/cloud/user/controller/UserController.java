@@ -1,7 +1,8 @@
 package br.dev.leandro.spring.cloud.user.controller;
 
-import br.dev.leandro.spring.cloud.user.model.UserDto;
+import br.dev.leandro.spring.cloud.user.dto.UserDto;
 import br.dev.leandro.spring.cloud.user.service.UserService;
+import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -19,17 +20,22 @@ public class UserController {
     }
 
     @PostMapping("/admin/create")
-    public Mono<ResponseEntity<String>> createUser(@RequestBody UserDto request) {
+    public Mono<ResponseEntity<String>> createUser(@Valid @RequestBody UserDto request) {
         return userService.createUser(request)
                 .then(Mono.just(ResponseEntity.status(HttpStatus.CREATED).body("Usuário criado com sucesso.")))
                 .onErrorResume(e -> Mono.just(ResponseEntity.status(500).body("Erro ao criar usuário: " + e.getMessage())));
     }
 
     @PutMapping("/admin/{id}")
-    public Mono<ResponseEntity<String>> updateUser(@PathVariable("id") Long id, @RequestBody UserDto userDto) {
+    public Mono<ResponseEntity<String>> updateUser(@PathVariable("id") String id, @Valid @RequestBody UserDto userDto) {
         return userService.updateUser(id, userDto)
                 .then(Mono.just(ResponseEntity.status(HttpStatus.OK).body("Usuário atualizado com sucesso!"))
-                .onErrorResume(e -> Mono.just(ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Erro ao atualizar o usuário: " + e.getMessage()))));
+                        .onErrorResume(RuntimeException.class, e ->
+                                Mono.just(ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Erro: " + e.getMessage()))
+                        )
+                        .onErrorResume(Exception.class, e ->
+                                Mono.just(ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Erro interno: " + e.getMessage()))
+                        ));
     }
 
     // Endpoint Público
