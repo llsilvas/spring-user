@@ -16,7 +16,11 @@ public record UserDto(
 
         @NotBlank(message = "O último nome não pode estar vazio.")
         String lastName,
+
+        @NotBlank(message = "Password não pode estar vazio.")
         String password,
+
+        @NotBlank(message = "Role não pode estar vazio")
         String role) {
 }
 

@@ -1,8 +1,9 @@
 package br.dev.leandro.spring.cloud.user.service.integration;
 
 import br.dev.leandro.spring.cloud.user.config.WebClientTestConfig;
-import br.dev.leandro.spring.cloud.user.exception.ResourceNotFoundException;
 import br.dev.leandro.spring.cloud.user.dto.UserDto;
+import br.dev.leandro.spring.cloud.user.dto.UserUpdateDto;
+import br.dev.leandro.spring.cloud.user.exception.ResourceNotFoundException;
 import br.dev.leandro.spring.cloud.user.service.UserService;
 import com.github.tomakehurst.wiremock.client.WireMock;
 import com.github.tomakehurst.wiremock.http.Fault;
@@ -17,6 +18,8 @@ import org.springframework.boot.test.context.SpringBootTest;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 
+import java.util.Optional;
+
 import static com.github.tomakehurst.wiremock.client.WireMock.*;
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -27,6 +30,7 @@ class UserServiceIT {
     @Autowired
     private UserService userService;
     private UserDto userDto;
+    private UserUpdateDto userUpdateDto;
 
     @BeforeEach
     void setUp() {
@@ -42,7 +46,7 @@ class UserServiceIT {
         stubFor(post(urlPathEqualTo("/admin/realms/mocked-realm/users/123/role-mappings/realm"))
                 .willReturn(aResponse()
                         .withStatus(200)
-                        ));
+                ));
 
         // Mock para obtenção de roles
         stubFor(get(urlPathEqualTo("/admin/realms/mocked-realm/roles"))
@@ -53,6 +57,7 @@ class UserServiceIT {
 
         //Mock userDto
         userDto = getUserDto();
+        userUpdateDto = getUserUpdateDto();
 
     }
 
@@ -65,13 +70,12 @@ class UserServiceIT {
 
     @Test
     void testCreateUser_Success() {
+
         // Configuração de stub para criação de usuário
         stubFor(post(urlPathEqualTo("/admin/realms/mocked-realm/users"))
                 .willReturn(aResponse()
                         .withStatus(201)
                         .withHeader("Location", "/admin/realms/mocked-realm/users/123")));
-        // Configuração do DTO do usuário
-        UserDto userDto = new UserDto("test_user", "test@example.com", "Test", "User", "password123", "role");
 
         // Chamada do método que será testada
         Mono<Void> result = userService.createUser(userDto);
@@ -84,8 +88,114 @@ class UserServiceIT {
         // Verificação de que o WireMock recebeu as requisições esperadas
         verify(postRequestedFor(urlPathEqualTo("/realms/mocked-realm/protocol/openid-connect/token")));
         verify(postRequestedFor(urlPathEqualTo("/admin/realms/mocked-realm/users"))
-                .withHeader("Authorization", equalTo("Bearer mocked-token")));
+                .withHeader("Authorization", equalTo("Bearer {\"access_token\":\"mocked-token\"}")));
     }
+
+    @Test
+    void testCreateUser_UserCreationFails() {
+
+        // Configuração do stub para criar usuário com erro
+        stubFor(post(urlPathEqualTo("/admin/realms/mocked-realm/users"))
+                .willReturn(aResponse()
+                        .withStatus(500)));
+
+        UserDto userDto = new UserDto("test_user", "test@example.com", "Test", "User", "password123", "test-role");
+
+        // Chamada do método
+        Mono<Void> result = userService.createUser(userDto);
+
+        // Verificação com StepVerifier
+        StepVerifier.create(result)
+                .expectErrorSatisfies(throwable -> {
+                    assertInstanceOf(RuntimeException.class, throwable);
+                    assertTrue(throwable.getMessage().contains("500 Internal Server Error"));
+                })
+                .verify();
+    }
+
+
+    @Test
+    void testCreateUser_InvalidToken() {
+        // Configuração do stub para obter o token com erro
+        stubFor(post(urlPathEqualTo("/realms/mocked-realm/protocol/openid-connect/token"))
+                .willReturn(aResponse()
+                        .withStatus(401)));
+
+        UserDto userDto = new UserDto("test_user", "test@example.com", "Test", "User", "password123", "test-role");
+
+        // Chamada do método
+        Mono<Void> result = userService.createUser(userDto);
+
+        // Verificação com StepVerifier
+        StepVerifier.create(result)
+                .expectErrorSatisfies(throwable -> {
+                    assertInstanceOf(AuthenticationException.class, throwable);
+                    assertEquals("Token inválido ou expirado.", throwable.getMessage());
+                })
+                .verify();
+    }
+
+    @Test
+    void testAssignRoleToUser_RoleNotFound() {
+        // Configura o WireMock para não retornar roles
+        stubFor(get(urlPathEqualTo("/admin/realms/mocked-realm/roles"))
+                .willReturn(aResponse()
+                        .withStatus(200)
+                        .withHeader("Content-Type", "application/json")
+                        .withBody("[]")));
+
+        Mono<Void> result = userService.assignRoleToUser("123", "nonexistent-role");
+
+        StepVerifier.create(result)
+                .expectErrorSatisfies(error -> {
+                    assertInstanceOf(ResourceNotFoundException.class, error);
+                    assertEquals("Role não encontrada: nonexistent-role", error.getMessage());
+                })
+                .verify();
+    }
+
+    @Test
+    void testCreateUser_RoleAssignmentFails() {
+        // Configuração do stub para obter o token
+        stubFor(post(urlPathEqualTo("/realms/mocked-realm/protocol/openid-connect/token"))
+                .willReturn(aResponse()
+                        .withStatus(200)
+                        .withHeader("Content-Type", "application/json")
+                        .withBody("{\"access_token\":\"mocked-token\"}")));
+
+        // Configuração do stub para criar usuário
+        stubFor(post(urlPathEqualTo("/admin/realms/mocked-realm/users"))
+                .willReturn(aResponse()
+                        .withStatus(201)
+                        .withHeader("Location", "/admin/realms/mocked-realm/users/123")));
+
+        // Configuração do stub para retornar a role existente
+        stubFor(get(urlPathEqualTo("/admin/realms/mocked-realm/roles"))
+                .willReturn(aResponse()
+                        .withStatus(200)
+                        .withHeader("Content-Type", "application/json")
+                        .withBody("[{\"id\": \"role123\", \"name\": \"test-role\"}]")));
+
+        // Configuração do stub para atribuir role com erro
+        stubFor(post(urlPathEqualTo("/admin/realms/mocked-realm/users/123/role-mappings/realm"))
+                .willReturn(aResponse()
+                        .withStatus(500)
+                        .withBody("Erro interno ao atribuir role")));
+
+        UserDto userDto = new UserDto("test_user", "test@example.com", "Test", "User", "password123", "test-role");
+
+        // Chamada do método
+        Mono<Void> result = userService.createUser(userDto);
+
+        // Verificação com StepVerifier
+        StepVerifier.create(result)
+                .expectErrorSatisfies(throwable -> {
+                    assertInstanceOf(RuntimeException.class, throwable);
+                    assertTrue(throwable.getMessage().contains("Erro interno ao atribuir role"));
+                })
+                .verify();
+    }
+
 
     @Test
     void updateUser_ShouldUpdateSuccessfully() {
@@ -99,11 +209,11 @@ class UserServiceIT {
                         .withStatus(204))); // Use 204 porque reset de senha geralmente não retorna corpo
 
         assertDoesNotThrow(() -> {
-            userService.updateUser("123456", userDto).block();
+            userService.updateUser("123456", userUpdateDto).block();
         });
 
         verify(putRequestedFor(urlPathEqualTo("/admin/realms/mocked-realm/users/123456"))
-                .withHeader("Authorization", equalTo("Bearer mocked-token"))
+                .withHeader("Authorization", equalTo("Bearer {\"access_token\":\"mocked-token\"}"))
                 .withRequestBody(matchingJsonPath("$.username", equalTo("test_user")))
                 .withRequestBody(matchingJsonPath("$.email", equalTo("test@example.com"))));
     }
@@ -116,7 +226,7 @@ class UserServiceIT {
 
         // Act & Assert: Verifica se a exceção encapsulada contém a exceção esperada
         Exception exception = assertThrows(Exception.class, () -> {
-            userService.updateUser("123456", userDto).block();
+            userService.updateUser("123456", userUpdateDto).block();
         });
 
         // Verifica se a causa da exceção é a esperada
@@ -134,7 +244,7 @@ class UserServiceIT {
 
         // Act & Assert: Verifica se a exceção encapsulada contém a exceção esperada
         Exception exception = assertThrows(Exception.class, () -> {
-            userService.updateUser("123456", userDto).block();
+            userService.updateUser("123456", userUpdateDto).block();
         });
 
         // Verifica se a causa da exceção é a esperada
@@ -151,7 +261,7 @@ class UserServiceIT {
                 .willReturn(aResponse().withFault(Fault.CONNECTION_RESET_BY_PEER)));
 
         RuntimeException exception = assertThrows(RuntimeException.class, () -> {
-            userService.updateUser("123456", userDto).block();
+            userService.updateUser("123456", userUpdateDto).block();
         });
 
         assertFalse(exception.getMessage().isEmpty());
@@ -159,8 +269,11 @@ class UserServiceIT {
 
     @NotNull
     private static UserDto getUserDto() {
-        return new UserDto("test_user", "test@example.com", "Test", "User", "password123", null);
+        return new UserDto("test_user", "test@example.com", "Test", "User", "password123", "role");
     }
 
+    private static UserUpdateDto getUserUpdateDto() {
+        return new UserUpdateDto("test_user", Optional.of("test@example.com"), Optional.of("Test"), Optional.of("User"), Optional.of("password123"));
+    }
 
 }

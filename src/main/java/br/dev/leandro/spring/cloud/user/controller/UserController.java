@@ -1,6 +1,7 @@
 package br.dev.leandro.spring.cloud.user.controller;
 
 import br.dev.leandro.spring.cloud.user.dto.UserDto;
+import br.dev.leandro.spring.cloud.user.dto.UserUpdateDto;
 import br.dev.leandro.spring.cloud.user.service.UserService;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
@@ -27,7 +28,7 @@ public class UserController {
     }
 
     @PutMapping("/admin/{id}")
-    public Mono<ResponseEntity<String>> updateUser(@PathVariable("id") String id, @Valid @RequestBody UserDto userDto) {
+    public Mono<ResponseEntity<String>> updateUser(@PathVariable("id") String id, @Valid @RequestBody UserUpdateDto userDto) {
         return userService.updateUser(id, userDto)
                 .then(Mono.just(ResponseEntity.status(HttpStatus.OK).body("Usuário atualizado com sucesso!"))
                         .onErrorResume(RuntimeException.class, e ->
