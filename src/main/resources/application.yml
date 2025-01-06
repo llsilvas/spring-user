@@ -1,29 +1,27 @@
 server:
-  port: 8081
+  port: 8091
 spring:
-  web:
-    ipv4-only: true
   application:
     name: spring-user
   config:
     import: optional:configserver:http://${SPRING_CONFIG_SERVER:localhost}:8888 # URL do Config Server
 
-  security:
-    oauth2:
-      resourceserver:
-        jwt:
-          jwk-set-uri: http://${KEYCLOAK_URL:localhost:8443}/realms/event-management/protocol/openid-connect/certs
-          issuer-uri: http://${KEYCLOAK_URL:localhost:8443}/realms/event-management
-
-
-  # Configurações para o Keycloak Admin API
-  keycloak:
-    admin:
-      client-id: user-service-admin
-      client-secret: wcQ65Sna3z7xmXmDz5dUdZNdm9GIy8xL
-      auth-server-url: http://localhost:8443
-      realm: event-management
-
-logging:
-  level:
-    web: debug
+#  security:
+#    oauth2:
+#      resourceserver:
+#        jwt:
+#          jwk-set-uri: http://${KEYCLOAK_URL:localhost:8443}/realms/event-management/protocol/openid-connect/certs
+#          issuer-uri: http://${KEYCLOAK_URL:localhost:8443}/realms/event-management
+#
+#
+#  # Configurações para o Keycloak Admin API
+#  keycloak:
+#    admin:
+#      client-id: user-service-admin
+#      client-secret: wcQ65Sna3z7xmXmDz5dUdZNdm9GIy8xL
+#      auth-server-url: http://localhost:8443
+#      realm: event-management
+#
+#logging:
+#  level:
+#    web: debug
