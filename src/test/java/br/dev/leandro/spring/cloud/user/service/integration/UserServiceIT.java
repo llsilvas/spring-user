@@ -1,5 +1,6 @@
 package br.dev.leandro.spring.cloud.user.service.integration;
 
+import br.dev.leandro.spring.cloud.user.SpringUserApplication;
 import br.dev.leandro.spring.cloud.user.config.WebClientTestConfig;
 import br.dev.leandro.spring.cloud.user.dto.UserDto;
 import br.dev.leandro.spring.cloud.user.dto.UserUpdateDto;
@@ -23,7 +24,9 @@ import java.util.Optional;
 import static com.github.tomakehurst.wiremock.client.WireMock.*;
 import static org.junit.jupiter.api.Assertions.*;
 
-@SpringBootTest(properties = "spring.profiles.active=test", classes = WebClientTestConfig.class)
+@SpringBootTest(
+        properties = "spring.profiles.active=test",
+        classes = {SpringUserApplication.class, WebClientTestConfig.class})
 @WireMockTest(httpPort = 8081) // Configura WireMock na porta 8081
 class UserServiceIT {
 
