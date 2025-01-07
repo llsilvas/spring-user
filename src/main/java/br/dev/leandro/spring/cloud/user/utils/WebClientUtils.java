@@ -1,6 +1,7 @@
 package br.dev.leandro.spring.cloud.user.utils;
 
 import br.dev.leandro.spring.cloud.user.keycloak.KeycloakProperties;
+import lombok.extern.log4j.Log4j2;
 import org.apache.tomcat.websocket.AuthenticationException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -12,6 +13,11 @@ import org.springframework.web.reactive.function.client.WebClient;
 import org.springframework.web.util.UriComponentsBuilder;
 import reactor.core.publisher.Mono;
 
+import java.net.URI;
+import java.util.HashMap;
+import java.util.Map;
+
+@Log4j2
 @Component
 public class WebClientUtils {
 
@@ -31,33 +37,39 @@ public class WebClientUtils {
         this.clientSecret = keycloakProperties.getClientSecret();
     }
 
-
-    public WebClient.RequestHeadersSpec<?> createPostRequest(String token, String uriTemplate, Object body, Object... uriVariables) {
-        String uri = buildUri(uriTemplate, uriVariables);
+    public WebClient.RequestHeadersSpec<?> createPostRequest(String token, String uriTemplate, Object body, Map<String, Object> uriVariables) {
+        var uri = buildUri(uriTemplate, uriVariables);
         return webClient.post()
-                .uri(uri, realm)
+                .uri(uri)
                 .header(AUTHORIZATION, BEARER + token)
                 .contentType(MediaType.APPLICATION_JSON)
                 .bodyValue(body);
     }
 
-    private String buildUri(String uriTemplate, Object[] uriVariables) {
-        return UriComponentsBuilder.fromUriString(uriTemplate)
-                .build(uriVariables)
+    private String buildUri(String uriTemplate, Map<String, Object> uriVariables) {
+        Map<String, Object> vars = new HashMap<>();
+        vars.put("realm", this.realm);
+        if (uriVariables != null) {
+            vars.putAll(uriVariables);
+        }
+        String uri = UriComponentsBuilder.fromUriString(uriTemplate)
+                .buildAndExpand(vars)
                 .toString();
+        log.info("URI construída: {}", uri);
+        return uri;
     }
 
-    public WebClient.RequestHeadersSpec<?> createGetRequest(String token, String uriTemplate, Object... uriVariables) {
-        String uri = buildUri(uriTemplate, uriVariables);
+    public WebClient.RequestHeadersSpec<?> createGetRequest(String token, String uriTemplate) {
+        var uri = buildUri(uriTemplate, null);
         return webClient.get()
-                .uri(uri, realm)
+                .uri(uri)
                 .header(AUTHORIZATION, BEARER + token);
     }
 
-    public WebClient.RequestHeadersSpec<?> createPutRequest(String token, String uriTemplate, Object body, Object... uriVariables) {
-        String uri = buildUri(uriTemplate, uriVariables);
+    public WebClient.RequestHeadersSpec<?> createPutRequest(String token, String uriTemplate, Object body, Map<String, Object> uriVariables) {
+        var uri = buildUri(uriTemplate, uriVariables);
         return webClient.put()
-                .uri(uri, realm)
+                .uri(uri)
                 .header(AUTHORIZATION, BEARER + token)
                 .contentType(MediaType.APPLICATION_JSON)
                 .bodyValue(body);

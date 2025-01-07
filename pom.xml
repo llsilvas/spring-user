@@ -10,7 +10,7 @@
     </parent>
     <groupId>br.dev.leandro.spring.cloud</groupId>
     <artifactId>spring-user</artifactId>
-    <version>1.0.2</version>
+    <version>1.0.3</version>
     <name>spring-user</name>
     <description>spring-user</description>
     <url/>
@@ -164,11 +164,11 @@
             <version>2.1.3</version>
         </dependency>
 
-<!--        <dependency>-->
-<!--            <groupId>com.h2database</groupId>-->
-<!--            <artifactId>h2</artifactId>-->
-<!--            <scope>test</scope>-->
-<!--        </dependency>-->
+        <dependency>
+            <groupId>com.h2database</groupId>
+            <artifactId>h2</artifactId>
+            <scope>test</scope>
+        </dependency>
 
 
     </dependencies>
