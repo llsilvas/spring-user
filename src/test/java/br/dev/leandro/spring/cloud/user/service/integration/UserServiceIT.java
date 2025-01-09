@@ -102,18 +102,10 @@ class UserServiceIT {
                 .willReturn(aResponse()
                         .withStatus(500)));
 
-        UserDto userDto = new UserDto("test_user", "test@example.com", "Test", "User", "password123", "test-role");
+        userDto = new UserDto("test_user", "test@example.com", "Test", "User", "password123", "test-role");
 
         // Chamada do método
         Mono<Void> result = userService.createUser(userDto);
-
-//        // Verificação com StepVerifier
-//        StepVerifier.create(result)
-//                .expectErrorSatisfies(throwable -> {
-//                    assertInstanceOf(RuntimeException.class, throwable);
-//                    assertTrue(throwable.getMessage().contains("500 Internal Server Error"));
-//                })
-//                .verify();
 
         // Verificação com StepVerifier
         StepVerifier.create(result)
@@ -133,7 +125,7 @@ class UserServiceIT {
                 .willReturn(aResponse()
                         .withStatus(401)));
 
-        UserDto userDto = new UserDto("test_user", "test@example.com", "Test", "User", "password123", "test-role");
+        userDto = new UserDto("test_user", "test@example.com", "Test", "User", "password123", "test-role");
 
         // Chamada do método
         Mono<Void> result = userService.createUser(userDto);
@@ -194,7 +186,7 @@ class UserServiceIT {
                         .withStatus(500)
                         .withBody("Erro interno ao atribuir role")));
 
-        UserDto userDto = new UserDto("test_user", "test@example.com", "Test", "User", "password123", "test-role");
+        userDto = new UserDto("test_user", "test@example.com", "Test", "User", "password123", "test-role");
 
         // Chamada do método
         Mono<Void> result = userService.createUser(userDto);
@@ -208,7 +200,6 @@ class UserServiceIT {
                 .verify();
 
     }
-
 
     @Test
     void updateUser_ShouldUpdateSuccessfully() {
