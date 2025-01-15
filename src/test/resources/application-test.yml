@@ -1,0 +1,24 @@
+spring:
+  keycloak:
+    admin:
+      client-id: mocked-client
+      client-secret: mocked-secret
+      auth-server-url: http://localhost:8081
+      realm: mocked-realm
+  datasource:
+    url: jdbc:h2:mem:testdb;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE
+    driver-class-name: org.h2.Driver
+    username: sa
+    password:
+
+
+logging:
+  level:
+    root: INFO
+    org.springframework.web: INFO
+    org.springframework.boot: INFO
+    com.github.loki4j.logback: INFO
+    org.springframework.security: INFO
+    org.springframework.cloud.bus: INFO
+    org.springframework.cloud: DEBUG
+    org.springframework.cloud.config: DEBUG

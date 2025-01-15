@@ -39,6 +39,8 @@ public class UserController {
                         ));
     }
 
+
+
     // Endpoint Público
     @GetMapping("/public/info")
     public ResponseEntity<String> getPublicInfo() {

@@ -14,7 +14,7 @@ public class WebClientErrorHandler {
         return response.createException().flatMap(ex -> {
             String errorMessage = "Erro interno no Keycloak. Status: " + status;
             if (status == HttpStatus.NOT_FOUND) {
-                return Mono.error(new ResourceNotFoundException("Recurso não encontrado."));
+                return Mono.error(new ResourceNotFoundException("Usuário não encontrado."));
             }
             if (status == HttpStatus.FORBIDDEN) {
                 return Mono.error(new AuthenticationException("Acesso negado."));

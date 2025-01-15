@@ -58,10 +58,16 @@
             <scope>runtime</scope>
             <optional>true</optional>
         </dependency>
+        <!-- Micrometer Prometheus -->
         <dependency>
             <groupId>io.micrometer</groupId>
             <artifactId>micrometer-registry-prometheus</artifactId>
-            <scope>runtime</scope>
+        </dependency>
+
+        <!-- OpenTelemetry Instrumentation para Spring Boot -->
+        <dependency>
+            <groupId>io.opentelemetry.instrumentation</groupId>
+            <artifactId>opentelemetry-spring-boot-starter</artifactId>
         </dependency>
         <dependency>
             <groupId>org.projectlombok</groupId>
@@ -125,7 +131,7 @@
         </dependency>
 
         <!-- Dependência do Keycloak Spring Boot Adapter (se ainda necessário) -->
-        <!-- Nota: Verifique a compatibilidade e a necessidade desta dependência. Pode ser opcional se você estiver usando apenas Spring Security OAuth2 -->
+        <!-- Nota: Verifique a compatibilidade e a necessidade desta dependência. Pode ser opcional se você estiver a usar apenas Spring Security OAuth2 -->
         <dependency>
             <groupId>org.keycloak</groupId>
             <artifactId>keycloak-spring-boot-starter</artifactId>
@@ -178,6 +184,13 @@
                 <groupId>org.springframework.cloud</groupId>
                 <artifactId>spring-cloud-dependencies</artifactId>
                 <version>${spring-cloud.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+            <dependency>
+                <groupId>io.opentelemetry.instrumentation</groupId>
+                <artifactId>opentelemetry-instrumentation-bom</artifactId>
+                <version>2.11.0</version>
                 <type>pom</type>
                 <scope>import</scope>
             </dependency>
@@ -274,6 +287,9 @@
                     <includes>
                         <include>**/integration/*IT.java</include>
                     </includes>
+                    <systemPropertyVariables>
+                        <spring.profiles.active>test</spring.profiles.active>
+                    </systemPropertyVariables>
                 </configuration>
             </plugin>
         </plugins>

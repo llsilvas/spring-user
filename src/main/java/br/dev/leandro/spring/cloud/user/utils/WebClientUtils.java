@@ -13,7 +13,6 @@ import org.springframework.web.reactive.function.client.WebClient;
 import org.springframework.web.util.UriComponentsBuilder;
 import reactor.core.publisher.Mono;
 
-import java.net.URI;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -75,10 +74,19 @@ public class WebClientUtils {
                 .bodyValue(body);
     }
 
+    public WebClient.RequestHeadersSpec<?> createDeleteRequest(String token, String uriTemplate, Map<String, Object> uriVariables) {
+        var uri = buildUri(uriTemplate, uriVariables);
+        return webClient.delete()
+                .uri(uri)
+                .header(AUTHORIZATION, BEARER + token);
+
+    }
+
 
     public Mono<String> getAdminAccessToken() {
+        var uri = buildUri("/realms/{realm}/protocol/openid-connect/token", null);
         return webClient.post()
-                .uri("/realms/{realm}/protocol/openid-connect/token", realm)
+                .uri(uri)
                 .contentType(MediaType.APPLICATION_FORM_URLENCODED)
                 .body(BodyInserters.fromFormData("grant_type", "client_credentials")
                         .with("client_id", clientId)

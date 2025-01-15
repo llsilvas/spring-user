@@ -3,8 +3,11 @@ server:
 spring:
   application:
     name: spring-user
-  config:
-    import: optional:configserver:http://${SPRING_CONFIG_SERVER:localhost}:8888 # URL do Config Server
+  cloud:
+    config:
+      enabled: false
+#  config:
+#    import: optional:configserver:http://${SPRING_CONFIG_SERVER:localhost}:8888 # URL do Config Server
 
 #  security:
 #    oauth2:
@@ -25,3 +28,58 @@ spring:
 #logging:
 #  level:
 #    web: debug
+otel:
+  traces:
+    exporter: otlp
+    sampler: always_on  # opcional
+  exporter:
+    otlp:
+      endpoint: http://tempo:9095
+
+#
+management:
+  metrics:
+    distribution:
+      percentiles-histogram:
+        http:
+          server:
+            request: true
+  observations:
+    key-values:
+      application: spring-user
+
+  tracing:
+    sampling:
+      probability: 1.0
+  endpoints:
+    web:
+      exposure:
+        include: health, metrics, prometheus, info
+
+#otel:
+#  metrics:
+#    exporter: none
+#  traces:
+#    exporter: otlp
+#    sampler:
+#      always_on
+#  exporter:
+#    otlp:
+#      endpoint: http://localhost:3200
+#      logs:
+#        protocol: http/protobuf
+#
+#logging:
+#  level:
+#    io.opentelemetry: DEBUG
+
+logging:
+  level:
+    root: INFO
+    org.springframework.web: INFO
+    org.springframework.boot: INFO
+    com.github.loki4j.logback: INFO
+    org.springframework.security: INFO
+    org.springframework.cloud.bus: INFO
+    org.springframework.cloud: DEBUG
+    org.springframework.cloud.config: DEBUG
