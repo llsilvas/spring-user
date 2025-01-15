@@ -84,6 +84,22 @@ public class UserService {
 
     }
 
+    public Mono<Void> deleteUser(String id) {
+        return webClientUtils.getAdminAccessToken()
+                .flatMap(token ->
+                    webClientUtils.createDeleteRequest(token, "/admin/realms/{realm}/users/{id}", Map.of("id", id))
+                            .exchangeToMono(response -> {
+                                if (response.statusCode().is2xxSuccessful()) {
+                                    return Mono.empty();
+                                }
+                                return WebClientErrorHandler.handleErrorStatus(response).then();
+                            })
+                ).onErrorResume(e -> {
+                    log.error("Erro ao excluir o user: {}", id, e);
+                    return Mono.error(e);
+                });
+    }
+
     public Mono<Void> assignRoleToUser(String userId, String roleName) {
         log.info("Iniciando assignRoleToUser para User ID: {}, Role: {}", userId, roleName);
         Map<String, Object> uriVariables = Map.of("userId", userId);
