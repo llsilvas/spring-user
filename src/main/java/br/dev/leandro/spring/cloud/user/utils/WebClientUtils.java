@@ -4,6 +4,7 @@ import br.dev.leandro.spring.cloud.user.keycloak.KeycloakProperties;
 import lombok.extern.log4j.Log4j2;
 import org.apache.tomcat.websocket.AuthenticationException;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.HttpStatusCode;
 import org.springframework.http.MediaType;
@@ -45,6 +46,15 @@ public class WebClientUtils {
                 .bodyValue(body);
     }
 
+    public WebClient.RequestHeadersSpec<?> createPutRequest(String token, String uriTemplate, Object body, Map<String, Object> uriVariables) {
+        var uri = buildUri(uriTemplate, uriVariables);
+        return webClient.put()
+                .uri(uri)
+                .header(AUTHORIZATION, BEARER + token)
+                .contentType(MediaType.APPLICATION_JSON)
+                .bodyValue(body);
+    }
+
     private String buildUri(String uriTemplate, Map<String, Object> uriVariables) {
         Map<String, Object> vars = new HashMap<>();
         vars.put("realm", this.realm);
@@ -63,15 +73,6 @@ public class WebClientUtils {
         return webClient.get()
                 .uri(uri)
                 .header(AUTHORIZATION, BEARER + token);
-    }
-
-    public WebClient.RequestHeadersSpec<?> createPutRequest(String token, String uriTemplate, Object body, Map<String, Object> uriVariables) {
-        var uri = buildUri(uriTemplate, uriVariables);
-        return webClient.put()
-                .uri(uri)
-                .header(AUTHORIZATION, BEARER + token)
-                .contentType(MediaType.APPLICATION_JSON)
-                .bodyValue(body);
     }
 
     public WebClient.RequestHeadersSpec<?> createDeleteRequest(String token, String uriTemplate, Map<String, Object> uriVariables) {
@@ -100,6 +101,10 @@ public class WebClientUtils {
                 })
                 .onStatus(HttpStatusCode::is5xxServerError, response ->
                         Mono.error(new RuntimeException("Erro interno ao obter o token.")))
-                .bodyToMono(String.class);
+                .bodyToMono(new ParameterizedTypeReference<Map<String, String>>() {}) // Mapeia para Map
+                .map(response -> response.get("access_token"))
+                .doOnSuccess(token -> System.out.println("Token recebido: " + token))
+                .doOnError(error -> System.err.println("Erro ao obter token: " + error.getMessage()));
     }
 }
+

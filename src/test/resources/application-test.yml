@@ -22,3 +22,4 @@ logging:
     org.springframework.cloud.bus: INFO
     org.springframework.cloud: DEBUG
     org.springframework.cloud.config: DEBUG
+    org.wiremock: DEBUG

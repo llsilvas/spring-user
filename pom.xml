@@ -120,15 +120,7 @@
             <artifactId>spring-security-test</artifactId>
             <scope>test</scope>
         </dependency>
-        <dependency>
-            <groupId>com.mysql</groupId>
-            <artifactId>mysql-connector-j</artifactId>
-            <scope>runtime</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-data-jpa</artifactId>
-        </dependency>
+
 
         <!-- Dependência do Keycloak Spring Boot Adapter (se ainda necessário) -->
         <!-- Nota: Verifique a compatibilidade e a necessidade desta dependência. Pode ser opcional se você estiver a usar apenas Spring Security OAuth2 -->
@@ -165,17 +157,10 @@
         </dependency>
 
         <dependency>
-            <groupId>com.maciejwalkowiak.spring</groupId>
+            <groupId>org.wiremock.integrations</groupId>
             <artifactId>wiremock-spring-boot</artifactId>
-            <version>2.1.3</version>
+            <version>3.4.0</version>
         </dependency>
-
-        <dependency>
-            <groupId>com.h2database</groupId>
-            <artifactId>h2</artifactId>
-            <scope>test</scope>
-        </dependency>
-
 
     </dependencies>
     <dependencyManagement>

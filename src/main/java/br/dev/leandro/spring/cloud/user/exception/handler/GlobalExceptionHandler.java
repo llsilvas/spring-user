@@ -17,6 +17,9 @@ import java.time.Instant;
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
+    public static final String TIMESTAMP = "timestamp";
+    public static final String PATH = "path";
+
     @ExceptionHandler(AccessDeniedException.class)
     public ResponseEntity<ErrorResponse> handleAccessDeniedException(AccessDeniedException e) {
         ErrorResponse errorResponse = ErrorResponse.builder(e, HttpStatus.FORBIDDEN, e.getMessage())
@@ -36,8 +39,8 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ErrorResponse> handleException(Exception e, HttpServletRequest request) {
         ErrorResponse errorResponse = ErrorResponse.builder(e, HttpStatus.INTERNAL_SERVER_ERROR, e.getMessage())
-                .property("timestamp", Instant.now())
-                .property("path", request.getRequestURI())
+                .property(TIMESTAMP, Instant.now())
+                .property(PATH, request.getRequestURI())
                 .build();
 
         log.error("Error exception: {}", errorResponse);
@@ -48,8 +51,8 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(ResourceNotFoundException.class)
     public ResponseEntity<ErrorResponse> handleResourceNotFound(ResourceNotFoundException ex, HttpServletRequest request) {
         ErrorResponse errorResponse = ErrorResponse.builder(ex, HttpStatus.NOT_FOUND, ex.getMessage())
-                .property("timestamp", Instant.now())
-                .property("path", request.getRequestURI())
+                .property(TIMESTAMP, Instant.now())
+                .property(PATH, request.getRequestURI())
                 .build();
         log.error("Resource not found: {}", errorResponse);
         return ResponseEntity.status(HttpStatus.NOT_FOUND).body(errorResponse);
@@ -58,8 +61,8 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(IllegalArgumentException.class)
     public ResponseEntity<ErrorResponse> handleIllegalArgumentException(IllegalArgumentException ex, HttpServletRequest request) {
         ErrorResponse errorResponse = ErrorResponse.builder(ex, HttpStatus.BAD_REQUEST, "Invalid argument provided")
-                .property("timestamp", Instant.now())
-                .property("path", request.getRequestURI())
+                .property(TIMESTAMP, Instant.now())
+                .property(PATH, request.getRequestURI())
                 .build();
         log.error("Illegal argument: {}", errorResponse);
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorResponse);

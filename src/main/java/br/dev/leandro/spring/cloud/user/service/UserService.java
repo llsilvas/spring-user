@@ -87,13 +87,13 @@ public class UserService {
     public Mono<Void> deleteUser(String id) {
         return webClientUtils.getAdminAccessToken()
                 .flatMap(token ->
-                    webClientUtils.createDeleteRequest(token, "/admin/realms/{realm}/users/{id}", Map.of("id", id))
-                            .exchangeToMono(response -> {
-                                if (response.statusCode().is2xxSuccessful()) {
-                                    return Mono.empty();
-                                }
-                                return WebClientErrorHandler.handleErrorStatus(response).then();
-                            })
+                        webClientUtils.createDeleteRequest(token, "/admin/realms/{realm}/users/{id}", Map.of("id", id))
+                                .exchangeToMono(response -> {
+                                    if (response.statusCode().is2xxSuccessful()) {
+                                        return Mono.empty();
+                                    }
+                                    return WebClientErrorHandler.handleErrorStatus(response).then();
+                                })
                 ).onErrorResume(e -> {
                     log.error("Erro ao excluir o user: {}", id, e);
                     return Mono.error(e);
@@ -162,7 +162,12 @@ public class UserService {
         return passwordOpt.map(password -> setUserPassword(id, password, token))
                 .orElseGet(() -> {
                     log.warn("Password não informado para o Usuário com ID: {}", id);
-                    return Mono.empty();
+                    return Mono.error(new IllegalArgumentException(
+                            "Senha não informada para o usuário com ID: " + id));
+
+                }).onErrorResume(e -> {
+                    log.error(ERRO_INESPERADO_AO_ATUALIZAR_USUARIO, e);
+                    return Mono.error(e);
                 });
     }
 
