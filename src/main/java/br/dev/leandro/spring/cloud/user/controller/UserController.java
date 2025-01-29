@@ -35,10 +35,19 @@ public class UserController {
                                 Mono.just(ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Erro: " + e.getMessage()))
                         )
                         .onErrorResume(Exception.class, e ->
-                                Mono.just(ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Erro interno: " + e.getMessage()))
-                        ));
+                                Mono.just(ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Erro interno: " + e.getMessage()))));
     }
 
+    @DeleteMapping("/admin/{id}")
+    public Mono<ResponseEntity<String>> deleteUser(@PathVariable("id") String id) {
+        return userService.deleteUser(id)
+                .then(Mono.just(ResponseEntity.status(HttpStatus.OK).body("Usuário deletado com sucesso!"))
+                        .onErrorResume(RuntimeException.class, e ->
+                                Mono.just(ResponseEntity.status(500).body("Erro: " + e.getMessage()))
+                        )
+                        .onErrorResume(Exception.class, e ->
+                                Mono.just(ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Erro interno: " + e.getMessage()))));
+    }
 
 
     // Endpoint Público
