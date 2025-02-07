@@ -5,13 +5,16 @@ import br.dev.leandro.spring.cloud.user.dto.UserUpdateDto;
 import br.dev.leandro.spring.cloud.user.exception.ResourceNotFoundException;
 import br.dev.leandro.spring.cloud.user.exception.handler.WebClientErrorHandler;
 import br.dev.leandro.spring.cloud.user.utils.WebClientUtils;
+import jakarta.validation.constraints.NotNull;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.tomcat.websocket.AuthenticationException;
-import org.jetbrains.annotations.NotNull;
 import org.springframework.cloud.context.config.annotation.RefreshScope;
+import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.HttpStatusCode;
 import org.springframework.stereotype.Service;
+import org.springframework.util.LinkedMultiValueMap;
+import org.springframework.util.MultiValueMap;
 import reactor.core.publisher.Mono;
 
 import java.util.*;
@@ -192,5 +195,63 @@ public class UserService {
                         ), Map.of("id", id))
                 .retrieve()
                 .bodyToMono(Void.class);
+    }
+
+    public Mono<UserDto> findUserById(String id) {
+        return webClientUtils.getAdminAccessToken()
+                .flatMap(token -> webClientUtils.createGetRequest(token, "/admin/realms/{realm}/users/{id}", Map.of("id", id))
+                        .retrieve()
+                        .onStatus(HttpStatusCode::isError, response -> {
+                            log.error("Erro ao buscar o usuário por ID: {}", id);
+                            return response.createException().flatMap(Mono::error);
+                        })
+                        .bodyToMono(UserDto.class)
+                ).onErrorResume(e -> {
+                    log.error("Erro ao buscar o usuário: {}", id, e);
+                    return Mono.error(e);
+                });
+    }
+
+    public Mono<Map<String, Object>> findAllUsers(String username, String email, Integer first, Integer max, String orderBy, Boolean ascending) {
+        Map<String, Object> queryParams = new HashMap<>();
+        if (!username.isEmpty()) {
+            queryParams.put("q", "username:" + username);
+        }
+        if (!email.isEmpty()) queryParams.put("email", email);
+        if (first != null) queryParams.put("first", first);
+        if (max != null) queryParams.put("max", max);
+        if (!orderBy.isEmpty()) queryParams.put("orderBy", orderBy);
+        if (ascending != null) queryParams.put("ascending", ascending);
+        queryParams.put("exact", "true");
+
+        log.info("Query Params enviados: {}", queryParams);
+
+        return webClientUtils.getAdminAccessToken()
+                .flatMap(token -> {
+                    Mono<List<UserDto>> usersMono = webClientUtils.createGetRequest(token, "/admin/realms/{realm}/users", queryParams)
+                            .retrieve()
+                            .bodyToFlux(UserDto.class)
+                            .collectList()
+                            .doOnNext(users -> log.info("Usuários encontrados: {}", users));
+
+                    Mono<Integer> countMono = webClientUtils.createGetRequest(token, "/admin/realms/{realm}/users/count")
+                            .retrieve()
+                            .bodyToMono(Integer.class)
+                            .doOnNext(total -> log.info("Total de usuários: {}", total));
+
+                    return Mono.zip(usersMono, countMono)
+                            .map(tuple -> {
+                                Map<String, Object> result = new HashMap<>();
+                                result.put("total", tuple.getT2());
+                                result.put("users", tuple.getT1());
+                                result.put("page", first / max + 1);
+                                result.put("pageSize", max);
+                                log.info("Resposta final: {}", result);
+                                return result;
+                            });
+                }).onErrorResume(e -> {
+                    log.error("Erro ao buscar usuários", e);
+                    return Mono.error(e);
+                });
     }
 }

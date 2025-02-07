@@ -8,7 +8,11 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.reactive.function.client.WebClientResponseException;
 import reactor.core.publisher.Mono;
+
+import java.util.Map;
+import java.util.Optional;
 
 @RestController
 @RequestMapping("/api/users")
@@ -47,6 +51,37 @@ public class UserController {
                         )
                         .onErrorResume(Exception.class, e ->
                                 Mono.just(ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Erro interno: " + e.getMessage()))));
+    }
+
+    @GetMapping("/admin/{id}")
+    public Mono<ResponseEntity<UserDto>> getUserById(@PathVariable("id") String id) {
+
+        return userService.findUserById(id)
+                .map(ResponseEntity::ok)
+                .defaultIfEmpty(ResponseEntity.notFound().build())
+                .onErrorResume(WebClientResponseException.class, e -> {
+                    if (e.getStatusCode().is4xxClientError()) {
+                        return Mono.just(ResponseEntity.status(e.getStatusCode()).body(null));
+                    } else {
+                        return Mono.just(ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(null));
+                    }
+                });
+    }
+
+    @GetMapping("/admin")
+    public Mono<ResponseEntity<Map<String, Object>>> getAllUsers(
+            @RequestParam(defaultValue = "") String username,
+            @RequestParam(defaultValue = "") String email,
+            @RequestParam(defaultValue = "0") Integer first,
+            @RequestParam(defaultValue = "10") Integer max,
+            @RequestParam(defaultValue = "username") String orderBy,
+            @RequestParam(defaultValue = "true") Boolean ascending) {
+
+        return userService.findAllUsers(username, email, first, max, orderBy, ascending)
+                .map(ResponseEntity::ok)
+                .onErrorResume(WebClientResponseException.class, e ->
+                        Mono.just(ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                                .body(Map.of("error", "Erro ao buscar usuários"))));
     }
 
 

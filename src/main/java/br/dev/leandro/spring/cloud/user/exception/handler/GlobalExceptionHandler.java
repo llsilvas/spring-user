@@ -2,11 +2,11 @@ package br.dev.leandro.spring.cloud.user.exception.handler;
 
 import br.dev.leandro.spring.cloud.user.exception.ResourceNotFoundException;
 import jakarta.servlet.http.HttpServletRequest;
-import kotlin.io.AccessDeniedException;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.tomcat.websocket.AuthenticationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.web.ErrorResponse;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;

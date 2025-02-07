@@ -9,8 +9,8 @@ import com.github.tomakehurst.wiremock.WireMockServer;
 import com.github.tomakehurst.wiremock.client.WireMock;
 import com.github.tomakehurst.wiremock.http.Fault;
 import com.github.tomakehurst.wiremock.junit5.WireMockTest;
+import jakarta.validation.constraints.NotNull;
 import org.apache.tomcat.websocket.AuthenticationException;
-import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -20,10 +20,12 @@ import org.springframework.http.HttpStatus;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
+import org.springframework.web.reactive.function.client.WebClientResponseException;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 
 import java.util.Arrays;
+import java.util.Map;
 import java.util.Optional;
 
 import static com.github.tomakehurst.wiremock.client.WireMock.*;
@@ -91,6 +93,8 @@ class UserServiceIT {
         userUpdateDto = getUserUpdateDto();
 
         WireMock.configureFor("localhost", wireMockServer.port());
+
+        wireMockServer.resetAll();
     }
 
     @AfterEach
@@ -117,13 +121,18 @@ class UserServiceIT {
         @Test
         void createUser_shouldCreateUserSuccessfully() {
             // Mock do endpoint para obter o token de acesso.
-            wireMockServer.stubFor(post(urlPathEqualTo("/realms/mocked-realm/protocol/openid-connect/token"))
+            wireMockServer.stubFor(post(urlEqualTo("/realms/mocked-realm/protocol/openid-connect/token"))
                     .withHeader("Content-Type", containing("application/x-www-form-urlencoded"))
                     .willReturn(aResponse()
                             .withStatus(200)
                             .withHeader("Content-Type", "application/json")
                             .withBody("{\"access_token\":\"mocked-token\",\"expires_in\":3600,\"token_type\":\"Bearer\"}")));
 
+            wireMockServer.stubFor(get(urlPathEqualTo("/admin/realms/mocked-realm/roles"))
+                    .willReturn(aResponse()
+                            .withStatus(200)
+                            .withHeader("Content-Type", "application/json")
+                            .withBody("[{\"id\": \"role123\", \"name\": \"role\"}]")));
 
             wireMockServer.stubFor(post(urlEqualTo("/admin/realms/mocked-realm/users"))
                     .withHeader("Authorization", equalTo("Bearer mocked-token"))
@@ -164,8 +173,15 @@ class UserServiceIT {
         @Test
         void testCreateUser_UserCreationFails() {
 
+            wireMockServer.stubFor(post(urlEqualTo("/realms/mocked-realm/protocol/openid-connect/token"))
+                    .withHeader("Content-Type", containing("application/x-www-form-urlencoded"))
+                    .willReturn(aResponse()
+                            .withStatus(200)
+                            .withHeader("Content-Type", "application/json")
+                            .withBody("{\"access_token\":\"mocked-token\",\"expires_in\":3600,\"token_type\":\"Bearer\"}")));
+
             // Configuração do stub para criar usuário com erro
-            wireMockServer.stubFor(post(urlPathEqualTo("/admin/realms/mocked-realm/users"))
+            wireMockServer.stubFor(post(urlEqualTo("/admin/realms/mocked-realm/users"))
                     .willReturn(aResponse()
                             .withStatus(500)));
 
@@ -188,7 +204,7 @@ class UserServiceIT {
         @Test
         void testCreateUser_InvalidToken() {
             // Configuração do stub para obter o token com erro
-            wireMockServer.stubFor(post(urlPathEqualTo("/realms/mocked-realm/protocol/openid-connect/token"))
+            wireMockServer.stubFor(post(urlEqualTo("/realms/mocked-realm/protocol/openid-connect/token"))
                     .willReturn(aResponse()
                             .withStatus(401)));
 
@@ -208,8 +224,15 @@ class UserServiceIT {
 
         @Test
         void testAssignRoleToUser_RoleNotFound() {
+
+            wireMockServer.stubFor(post(urlEqualTo("/realms/mocked-realm/protocol/openid-connect/token"))
+                    .withHeader("Content-Type", containing("application/x-www-form-urlencoded"))
+                    .willReturn(aResponse()
+                            .withStatus(200)
+                            .withHeader("Content-Type", "application/json")
+                            .withBody("{\"access_token\":\"mocked-token\",\"expires_in\":3600,\"token_type\":\"Bearer\"}")));
             // Configura o WireMock para não retornar roles
-            wireMockServer.stubFor(get(urlPathEqualTo("/admin/realms/mocked-realm/roles"))
+            wireMockServer.stubFor(get(urlEqualTo("/admin/realms/mocked-realm/roles"))
                     .willReturn(aResponse()
                             .withStatus(200)
                             .withHeader("Content-Type", "application/json")
@@ -228,27 +251,27 @@ class UserServiceIT {
         @Test
         void testCreateUser_RoleAssignmentFails() {
             // Configuração do stub para obter o token
-            wireMockServer.stubFor(post(urlPathEqualTo("/realms/mocked-realm/protocol/openid-connect/token"))
+            wireMockServer.stubFor(post(urlEqualTo("/realms/mocked-realm/protocol/openid-connect/token"))
                     .willReturn(aResponse()
                             .withStatus(200)
                             .withHeader("Content-Type", "application/json")
                             .withBody("{\"access_token\":\"mocked-token\"}")));
 
             // Configuração do stub para criar usuário
-            wireMockServer.stubFor(post(urlPathEqualTo("/admin/realms/mocked-realm/users"))
+            wireMockServer.stubFor(post(urlEqualTo("/admin/realms/mocked-realm/users"))
                     .willReturn(aResponse()
                             .withStatus(201)
                             .withHeader("Location", "/admin/realms/mocked-realm/users/123")));
 
             // Configuração do stub para retornar a role existente
-            wireMockServer.stubFor(get(urlPathEqualTo("/admin/realms/mocked-realm/roles"))
+            wireMockServer.stubFor(get(urlEqualTo("/admin/realms/mocked-realm/roles"))
                     .willReturn(aResponse()
                             .withStatus(200)
                             .withHeader("Content-Type", "application/json")
                             .withBody("[{\"id\": \"role123\", \"name\": \"test-role\"}]")));
 
             // Configuração do stub para atribuir role com erro
-            wireMockServer.stubFor(post(urlPathEqualTo("/admin/realms/mocked-realm/users/123/role-mappings/realm"))
+            wireMockServer.stubFor(post(urlEqualTo("/admin/realms/mocked-realm/users/123/role-mappings/realm"))
                     .willReturn(aResponse()
                             .withStatus(500)
                             .withBody("Erro interno ao atribuir role")));
@@ -308,6 +331,12 @@ class UserServiceIT {
 
         @Test
         void updateUser_ShouldHandleUserNotFound() {
+            // Configuração do stub para obter o token
+            wireMockServer.stubFor(post(urlPathEqualTo("/realms/mocked-realm/protocol/openid-connect/token"))
+                    .willReturn(aResponse()
+                            .withStatus(200)
+                            .withHeader("Content-Type", "application/json")
+                            .withBody("{\"access_token\":\"mocked-token\"}")));
             // Configura o WireMock para retornar 404
             wireMockServer.stubFor(put(urlPathEqualTo("/admin/realms/mocked-realm/users/123456"))
                     .willReturn(aResponse().withStatus(404)));
@@ -324,6 +353,12 @@ class UserServiceIT {
 
         @Test
         void updateUser_ShouldHandleAccessDenied() {
+            // Configuração do stub para obter o token
+            wireMockServer.stubFor(post(urlPathEqualTo("/realms/mocked-realm/protocol/openid-connect/token"))
+                    .willReturn(aResponse()
+                            .withStatus(200)
+                            .withHeader("Content-Type", "application/json")
+                            .withBody("{\"access_token\":\"mocked-token\"}")));
             // Arrange: Configuração do WireMock para retornar 403 Forbidden
             wireMockServer.stubFor(put(urlPathEqualTo("/admin/realms/mocked-realm/users/123456"))
                     .willReturn(aResponse()
@@ -376,7 +411,6 @@ class UserServiceIT {
 
         @Test
         void testeDeleteUser_Sucess() {
-
             // Configuração do stub para obter o token
             wireMockServer.stubFor(post(urlPathEqualTo("/realms/mocked-realm/protocol/openid-connect/token"))
                     .willReturn(aResponse()
@@ -419,6 +453,76 @@ class UserServiceIT {
         }
     }
 
+    @Nested
+    class GetUsersTest{
+
+        @Test
+        void testGetUsers_Sucess() {
+            wireMockServer.stubFor(post(urlPathEqualTo("/realms/mocked-realm/protocol/openid-connect/token"))
+                    .willReturn(aResponse()
+                            .withStatus(200)
+                            .withHeader("Content-Type", "application/json")
+                            .withBody("{\"access_token\":\"mocked-token\"}")));
+
+            wireMockServer.stubFor(get(urlPathEqualTo("/admin/realms/mocked-realm/users/123456"))
+                    .willReturn(aResponse()
+                            .withStatus(200)
+                    .withHeader("Content-Type", "application/json")
+                            .withBody("{\"id\": \"" + "123456" + "\", \"username\": \"testuser\"}")));
+
+            StepVerifier.create(userService.findUserById("123456"))
+                    .expectNextMatches(user -> user.username().equals("testuser"))
+                    .verifyComplete();
+        }
+
+        @Test
+        void testGetUsers_UserNotFound() {
+
+            wireMockServer.stubFor(get(urlPathEqualTo("/realms/mocked-realm/users/123456"))
+                    .willReturn(aResponse()
+                    .withStatus(404)));
+
+            StepVerifier.create(userService.findUserById("123456"))
+                    .expectErrorMatches(throwable -> throwable instanceof WebClientResponseException.NotFound)
+                    .verify();
+        }
+
+        @Test
+        void testGetUser_WhenServerError() {
+
+            wireMockServer.stubFor(post(urlPathEqualTo("/realms/mocked-realm/protocol/openid-connect/token"))
+                    .willReturn(aResponse()
+                            .withStatus(200)
+                            .withHeader("Content-Type", "application/json")
+                            .withBody("{\"access_token\":\"mocked-token\"}")));
+
+            wireMockServer.stubFor(get(urlEqualTo("/admin/realms/mocked-realm/users/123456"))
+                    .willReturn(aResponse().withStatus(500)));
+
+
+            StepVerifier.create(userService.findUserById("123456"))
+                    .expectErrorMatches(throwable -> throwable instanceof WebClientResponseException.InternalServerError)
+                    .verify();
+        }
+
+        @Test
+        void findUserById_ShouldReturnError_WhenUnauthorized() {
+            wireMockServer.stubFor(post(urlPathEqualTo("/realms/mocked-realm/protocol/openid-connect/token"))
+                    .willReturn(aResponse()
+                            .withStatus(200)
+                            .withHeader("Content-Type", "application/json")
+                            .withBody("{\"access_token\":\"mocked-token\"}")));
+
+            wireMockServer.stubFor(get(urlEqualTo("/admin/realms/mocked-realm/users/123456"))
+                    .willReturn(aResponse().withStatus(401)));
+
+            StepVerifier.create(userService.findUserById("123456"))
+                    .expectErrorMatches(throwable -> throwable instanceof WebClientResponseException.Unauthorized)
+                    .verify();
+        }
+
+    }
+
     @NotNull
     private static UserDto getUserDto() {
         return new UserDto("test_user", "test@example.com", "Test", "User", "password123", "role");
@@ -427,6 +531,5 @@ class UserServiceIT {
     private static UserUpdateDto getUserUpdateDto() {
         return new UserUpdateDto("test_user", Optional.of("test@example.com"), Optional.of("Test"), Optional.of("User"), Optional.of("password123"));
     }
-
 }
 
