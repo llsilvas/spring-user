@@ -70,14 +70,11 @@ public class UserController {
 
     @GetMapping("/admin")
     public Mono<ResponseEntity<Map<String, Object>>> getAllUsers(
-            @RequestParam(defaultValue = "") String username,
-            @RequestParam(defaultValue = "") String email,
+            @RequestParam(defaultValue = "") String search,
             @RequestParam(defaultValue = "0") Integer first,
-            @RequestParam(defaultValue = "10") Integer max,
-            @RequestParam(defaultValue = "username") String orderBy,
-            @RequestParam(defaultValue = "true") Boolean ascending) {
+            @RequestParam(defaultValue = "10") Integer max) {
 
-        return userService.findAllUsers(username, email, first, max, orderBy, ascending)
+        return userService.findAllUsers(search, first, max)
                 .map(ResponseEntity::ok)
                 .onErrorResume(WebClientResponseException.class, e ->
                         Mono.just(ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
