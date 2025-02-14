@@ -1,6 +1,7 @@
 package br.dev.leandro.spring.cloud.user.config;
 
 import br.dev.leandro.spring.cloud.user.converter.CustomJwtAuthenticationConverter;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Profile;
@@ -11,10 +12,11 @@ import org.springframework.security.config.annotation.web.configurers.AbstractHt
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationConverter;
 import org.springframework.security.web.SecurityFilterChain;
 
+@Slf4j
 @Configuration
 @Profile("!test")
 @EnableWebSecurity
-@EnableMethodSecurity(prePostEnabled = true)
+@EnableMethodSecurity
 public class SecurityConfig {
 
     @Bean
@@ -42,7 +44,6 @@ public class SecurityConfig {
                 );
         return http.build();
     }
-
 
     @Bean
     public JwtAuthenticationConverter jwtAuthenticationConverter() {

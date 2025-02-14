@@ -4,6 +4,10 @@ import br.dev.leandro.spring.cloud.user.dto.UserDto;
 import br.dev.leandro.spring.cloud.user.dto.UserUpdateDto;
 import br.dev.leandro.spring.cloud.user.service.UserService;
 import jakarta.validation.Valid;
+import lombok.Getter;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.cloud.context.config.annotation.RefreshScope;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -12,13 +16,19 @@ import org.springframework.web.reactive.function.client.WebClientResponseExcepti
 import reactor.core.publisher.Mono;
 
 import java.util.Map;
-import java.util.Optional;
 
+@Slf4j
+@RefreshScope
+@Getter
 @RestController
 @RequestMapping("/api/users")
 public class UserController {
 
+    @Value("${app.message:Config not laoded}")
+    private String message;
+
     private final UserService userService;
+//    private final Tracer tracer;
 
     public UserController(UserService userService) {
         this.userService = userService;
@@ -70,14 +80,11 @@ public class UserController {
 
     @GetMapping("/admin")
     public Mono<ResponseEntity<Map<String, Object>>> getAllUsers(
-            @RequestParam(defaultValue = "") String username,
-            @RequestParam(defaultValue = "") String email,
+            @RequestParam(defaultValue = "") String search,
             @RequestParam(defaultValue = "0") Integer first,
-            @RequestParam(defaultValue = "10") Integer max,
-            @RequestParam(defaultValue = "username") String orderBy,
-            @RequestParam(defaultValue = "true") Boolean ascending) {
+            @RequestParam(defaultValue = "10") Integer max) {
 
-        return userService.findAllUsers(username, email, first, max, orderBy, ascending)
+        return userService.findAllUsers(search, first, max)
                 .map(ResponseEntity::ok)
                 .onErrorResume(WebClientResponseException.class, e ->
                         Mono.just(ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
@@ -86,10 +93,13 @@ public class UserController {
 
 
     // Endpoint Público
-    @GetMapping("/public/info")
-    public ResponseEntity<String> getPublicInfo() {
-        return ResponseEntity.ok("Informação pública acessível a todos.");
-    }
+//    @NewSpan
+//    @GetMapping("/public/info")
+//    public ResponseEntity<String> getPublicInfo() {
+//        String traceId = tracer.currentSpan() != null ? tracer.currentSpan().context().traceId() : "N/A";
+//        log.info("Executando log dentro do span - TraceID: {}", traceId);
+//        return ResponseEntity.ok(message);
+//    }
 
     // Endpoint Protegido para Administradores
     @GetMapping("/admin/all")

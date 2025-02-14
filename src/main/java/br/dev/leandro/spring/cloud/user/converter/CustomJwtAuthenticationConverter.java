@@ -25,7 +25,7 @@ public class CustomJwtAuthenticationConverter implements Converter<Jwt, Collecti
 
         List<String> roles = ((List<String>) realmAccess.get("roles")).stream()
                 .map(String::toUpperCase)
-                .collect(Collectors.toList());
+                .toList();
 
         return roles.stream()
                 .map(role -> new SimpleGrantedAuthority("ROLE_" + role))

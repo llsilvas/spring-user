@@ -4,7 +4,6 @@ import br.dev.leandro.spring.cloud.user.keycloak.KeycloakProperties;
 import lombok.extern.log4j.Log4j2;
 import org.apache.tomcat.websocket.AuthenticationException;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.cache.Cache;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.HttpStatusCode;

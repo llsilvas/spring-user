@@ -25,7 +25,7 @@ import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 
 import java.util.Arrays;
-import java.util.Map;
+import java.util.List;
 import java.util.Optional;
 
 import static com.github.tomakehurst.wiremock.client.WireMock.*;
@@ -519,6 +519,42 @@ class UserServiceIT {
             StepVerifier.create(userService.findUserById("123456"))
                     .expectErrorMatches(throwable -> throwable instanceof WebClientResponseException.Unauthorized)
                     .verify();
+        }
+
+        @Test
+        void testFindAllUsers_WithSearchParam_ShouldReturnFilteredUsers() {
+            wireMockServer.stubFor(post(urlPathEqualTo("/realms/mocked-realm/protocol/openid-connect/token"))
+                    .willReturn(aResponse()
+                            .withStatus(200)
+                            .withHeader("Content-Type", "application/json")
+                            .withBody("{\"access_token\":\"mocked-token\"}")));
+
+            wireMockServer.stubFor(get(urlPathEqualTo("/admin/realms/mocked-realm/users"))
+                    .withQueryParam("search", equalTo("leandro"))
+                    .willReturn(aResponse()
+                            .withStatus(200)
+                            .withHeader("Content-Type", "application/json")
+                            .withBody("""
+                            [
+                                {
+                                    "id": "1",
+                                    "username": "leandro",
+                                    "email": "leandro@email.com"
+                                }
+                            ]
+                        """)));
+
+            wireMockServer.stubFor(get(urlPathEqualTo("/admin/realms/mocked-realm/users/count"))
+                    .willReturn(aResponse()
+                            .withStatus(200)
+                            .withBody("1")));
+
+            StepVerifier.create(userService.findAllUsers("leandro", 0, 10))
+                    .expectNextMatches(response -> {
+                        List<?> users = (List<?>) response.get("users");
+                        return users.size() == 1 && users.getFirst().toString().contains("leandro");
+                    })
+                    .verifyComplete();
         }
 
     }

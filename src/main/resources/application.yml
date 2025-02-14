@@ -1,93 +1,51 @@
 server:
   port: 8091
+
 spring:
   application:
     name: spring-user
-  cloud:
-    config:
-      enabled: false
   config:
-    import: optional:configserver:http://${SPRING_CONFIG_SERVER:localhost}:8888 # URL do Config Server
+    import: optional:configserver:http://${SPRING_CONFIG_SERVER:localhost}:8888  # Config Server opcional
+
+  #  security:
+  #    oauth2:
+  #      resourceserver:
+  #        jwt:
+  #          jwk-set-uri: ${KEYCLOAK_JWK_SET_URI:localhost:8443}/realms/event-management/protocol/openid-connect/certs
+  #          issuer-uri: ${KEYCLOAK_ISSUER_URI:localhost:8443}/realms/event-management
+  #
+  #  keycloak:
+  #    admin:
+  #      client-id: ${KEYCLOAK_CLIENT_ID:user-service-admin}
+  #      client-secret: ${KEYCLOAK_CLIENT_SECRET:default-secret}  # Nunca manter senhas reais aqui, apenas para fallback
+  #      auth-server-url: ${KEYCLOAK_AUTH_SERVER_URL:http://localhost:8443}
+  #      realm: ${KEYCLOAK_REALM:event-management}
 
   security:
     oauth2:
       resourceserver:
         jwt:
-          jwk-set-uri: http://${KEYCLOAK_URL:localhost:8443}/realms/event-management/protocol/openid-connect/certs
-          issuer-uri: http://${KEYCLOAK_URL:localhost:8443}/realms/event-management
-
-
-  # Configurações para o Keycloak Admin API
-  keycloak:
-    admin:
-      client-id: user-service-admin
-      client-secret: wcQ65Sna3z7xmXmDz5dUdZNdm9GIy8xL
-      auth-server-url: http://localhost:8443
-      realm: event-management
-
-#logging:
-#  level:
-#    web: debug
-#otel:
-#  traces:
-#    exporter: otlp
-#    sampler: always_on  # opcional
-#  exporter:
-#    otlp:
-#      endpoint: http://tempo:9095
-
-#
+          issuer-uri: http://keycloak:8443/realms/event-management
+          jwk-set-uri: http://keycloak:8443/realms/event-management/protocol/openid-connect/certs
 management:
-  metrics:
-    distribution:
-      percentiles-histogram:
-        http:
-          server:
-            request: true
-  observations:
-    key-values:
-      application: spring-user
-
   tracing:
     sampling:
-      probability: 1.0
-  endpoints:
-    web:
-      exposure:
-        include: health, metrics, prometheus, info
-
+      probability: 1.0  # Ativa tracing para todas as requisições
+#
 #otel:
-#  metrics:
-#    exporter: none
-#  traces:
-#    exporter: otlp
-#    sampler:
-#      always_on
 #  exporter:
 #    otlp:
-#      endpoint: http://localhost:3200
 #      logs:
-#        protocol: http/protobuf
-#
-#logging:
-#  level:
-#    io.opentelemetry: DEBUG
+#        endpoint: http://otel-collector:4318/v1/logs
+#      metrics:
+#        endpoint: http://otel-collector:4318/v1/metrics
+#      traces:
+#        endpoint: http://otel-collector:4318/v1/traces
 
-otel:
-
-  logs:
-    exporter: none
-  traces:
-    exporter: none
-  metrics:
-    exporter: none
 logging:
   level:
-    root: INFO
-    org.springframework.web: INFO
-    org.springframework.boot: INFO
-    com.github.loki4j.logback: INFO
-    org.springframework.security: INFO
-    org.springframework.cloud.bus: INFO
-    org.springframework.cloud: DEBUG
-    org.springframework.cloud.config: DEBUG
+    org.springframework.security: DEBUG
+
+
+
+

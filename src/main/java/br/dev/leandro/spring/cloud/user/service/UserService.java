@@ -10,13 +10,12 @@ import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.tomcat.websocket.AuthenticationException;
 import org.springframework.cloud.context.config.annotation.RefreshScope;
-import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.HttpStatusCode;
 import org.springframework.stereotype.Service;
-import org.springframework.util.LinkedMultiValueMap;
-import org.springframework.util.MultiValueMap;
 import reactor.core.publisher.Mono;
 
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.util.*;
 
 @Slf4j
@@ -212,32 +211,46 @@ public class UserService {
                 });
     }
 
-    public Mono<Map<String, Object>> findAllUsers(String username, String email, Integer first, Integer max, String orderBy, Boolean ascending) {
+    public Mono<Map<String, Object>> findAllUsers(String search, Integer first, Integer max) {
         Map<String, Object> queryParams = new HashMap<>();
-        if (!username.isEmpty()) {
-            queryParams.put("q", "username:" + username);
+        if (!search.isEmpty()) {
+            queryParams.put("search", search); // Certifica-se de usar "search"
         }
-        if (!email.isEmpty()) queryParams.put("email", email);
-        if (first != null) queryParams.put("first", first);
-        if (max != null) queryParams.put("max", max);
-        if (!orderBy.isEmpty()) queryParams.put("orderBy", orderBy);
-        if (ascending != null) queryParams.put("ascending", ascending);
-        queryParams.put("exact", "true");
+        if (first != null) {
+            queryParams.put("first", first);
+        }
+        if (max != null) {
+            queryParams.put("max", max);
+        }
 
-        log.info("Query Params enviados: {}", queryParams);
+        log.info("Enviando requisição ao Keycloak com parâmetros: {}", queryParams);
+        long startTime = System.currentTimeMillis();
 
         return webClientUtils.getAdminAccessToken()
                 .flatMap(token -> {
-                    Mono<List<UserDto>> usersMono = webClientUtils.createGetRequest(token, "/admin/realms/{realm}/users", queryParams)
+                    String finalUrl = "/admin/realms/{realm}/users?search=" + URLEncoder.encode(search, StandardCharsets.UTF_8);
+
+                    log.info("Chamando Keycloak: {} com parâmetros: {}", finalUrl, queryParams);
+
+                    Mono<List<UserDto>> usersMono = webClientUtils.createGetRequest(token, finalUrl, queryParams)
                             .retrieve()
                             .bodyToFlux(UserDto.class)
                             .collectList()
-                            .doOnNext(users -> log.info("Usuários encontrados: {}", users));
+                            .doOnNext(users -> log.info("Usuários retornados do Keycloak: {}", users));
 
                     Mono<Integer> countMono = webClientUtils.createGetRequest(token, "/admin/realms/{realm}/users/count")
                             .retrieve()
-                            .bodyToMono(Integer.class)
-                            .doOnNext(total -> log.info("Total de usuários: {}", total));
+                            .bodyToMono(String.class) // Obtém a resposta como String
+                            .map(body -> {
+                                try {
+                                    return Integer.parseInt(body.trim()); // Converte para Integer manualmente
+                                } catch (NumberFormatException e) {
+                                    log.error("Erro ao converter contagem de usuários: {}", body);
+                                    return 0; // Retorna 0 caso a conversão falhe
+                                }
+                            })
+                            .doOnNext(total -> log.info("Total de usuários no Keycloak: {}", total));
+
 
                     return Mono.zip(usersMono, countMono)
                             .map(tuple -> {
@@ -246,11 +259,13 @@ public class UserService {
                                 result.put("users", tuple.getT1());
                                 result.put("page", first / max + 1);
                                 result.put("pageSize", max);
-                                log.info("Resposta final: {}", result);
+                                long duration = System.currentTimeMillis() - startTime;
+                                log.info("Tempo de resposta do Keycloak: {}ms", duration);
+                                log.info("Resposta final enviada ao cliente: {}", result);
                                 return result;
                             });
                 }).onErrorResume(e -> {
-                    log.error("Erro ao buscar usuários", e);
+                    log.error("Erro ao buscar usuários no Keycloak: {}", e.getMessage());
                     return Mono.error(e);
                 });
     }
