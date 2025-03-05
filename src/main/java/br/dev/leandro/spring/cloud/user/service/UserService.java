@@ -24,6 +24,7 @@ import java.util.*;
 @Getter
 public class UserService {
 
+    public static final String ERRO_INESPERADO_AO_ADICIONAR_USUARIO = "Erro inesperado ao adicionar usuário";
     public static final String ERRO_INESPERADO_AO_ATUALIZAR_USUARIO = "Erro inesperado ao atualizar usuário";
     private final WebClientUtils webClientUtils;
 
@@ -55,7 +56,7 @@ public class UserService {
                     if (e instanceof ResourceNotFoundException || e instanceof AuthenticationException) {
                         return Mono.error(e); // Propaga exceções conhecidas sem encapsulá-las novamente
                     }
-                    log.error(ERRO_INESPERADO_AO_ATUALIZAR_USUARIO, e);
+                    log.error(ERRO_INESPERADO_AO_ADICIONAR_USUARIO, e);
                     return Mono.error(e); // Propaga a exceção original sem adicionar prefixos adicionais
                 });
 

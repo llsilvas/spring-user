@@ -17,10 +17,16 @@ services:
       - SPRING_CONFIG_SERVER=${SPRING_CONFIG_SERVER}
       - LOKI_URL=${LOKI_URL}
       - SPRING_RABBITMQ_HOST=${SPRING_RABBITMQ_HOST}
+      - KEYCLOAK_URL=${KEYCLOAK_URL}
       - KEYCLOAK_AUTH_SERVER_URL=${KEYCLOAK_AUTH_SERVER_URL}
       - KEYCLOAK_JWK_SET_URI=${KEYCLOAK_JWK_SET_URI}
       - KEYCLOAK_ISSUER_URI=${KEYCLOAK_ISSUER_URI}
       - KEYCLOAK_CLIENT_SECRET=${KEYCLOAK_CLIENT_SECRET}
+      - OTEL_SERVICE_NAME=spring-user
+      - OTEL_TRACES_EXPORTER=otlp
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4318
+      - OTEL_LOGS_EXPORTER=none
+      - OTEL_METRICS_EXPORTER=none  # Desativa o envio de métricas
     restart: unless-stopped
     networks:
       - labs
