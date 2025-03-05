@@ -16,9 +16,9 @@
 
     <!-- Loki Appender (Logs enviados ao Loki) -->
     <appender name="LOKI" class="com.github.loki4j.logback.Loki4jAppender">
-<!--        <http>-->
-<!--            <url>http://loki:3100/loki/api/v1/push</url>-->
-<!--        </http>-->
+        <http>
+            <url>http://loki:3100/loki/api/v1/push</url>
+        </http>
         <format>
             <label>
                 <pattern>application=${name},host=${HOSTNAME},level=%level,traceId=%X{traceId:-MISSING},spanId=%X{spanId:-MISSING}</pattern>

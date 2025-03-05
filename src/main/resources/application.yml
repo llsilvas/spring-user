@@ -7,44 +7,31 @@ spring:
   config:
     import: optional:configserver:http://${SPRING_CONFIG_SERVER:localhost}:8888  # Config Server opcional
 
-  #  security:
-  #    oauth2:
-  #      resourceserver:
-  #        jwt:
-  #          jwk-set-uri: ${KEYCLOAK_JWK_SET_URI:localhost:8443}/realms/event-management/protocol/openid-connect/certs
-  #          issuer-uri: ${KEYCLOAK_ISSUER_URI:localhost:8443}/realms/event-management
-  #
-  #  keycloak:
-  #    admin:
-  #      client-id: ${KEYCLOAK_CLIENT_ID:user-service-admin}
-  #      client-secret: ${KEYCLOAK_CLIENT_SECRET:default-secret}  # Nunca manter senhas reais aqui, apenas para fallback
-  #      auth-server-url: ${KEYCLOAK_AUTH_SERVER_URL:http://localhost:8443}
-  #      realm: ${KEYCLOAK_REALM:event-management}
-
-  security:
-    oauth2:
-      resourceserver:
-        jwt:
-          issuer-uri: http://keycloak:8443/realms/event-management
-          jwk-set-uri: http://keycloak:8443/realms/event-management/protocol/openid-connect/certs
 management:
   tracing:
     sampling:
-      probability: 1.0  # Ativa tracing para todas as requisições
-#
-#otel:
-#  exporter:
-#    otlp:
-#      logs:
-#        endpoint: http://otel-collector:4318/v1/logs
-#      metrics:
-#        endpoint: http://otel-collector:4318/v1/metrics
-#      traces:
-#        endpoint: http://otel-collector:4318/v1/traces
+      probability: 1.0  # 100% das requisições serão rastreadas
 
+
+springdoc:
+  api-docs:
+    path: /user/api-docs
+  swagger-ui:
+    path: /user/swagger-ui.html
+  default-produces-media-type: application/json
+
+app:
+  version: @project.version@
+otel:
+  logs:
+    exporter: none
+  metrics:
+    exporter: none
 logging:
   level:
-    org.springframework.security: DEBUG
+    org.springframework.security: INFO
+    org.springdoc: debug
+    io.opentelemetry.exporter.otlp: DEBUG
 
 
 
