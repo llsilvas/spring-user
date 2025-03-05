@@ -1,5 +1,5 @@
 # Stage 1: Build stage
-FROM maven:3.9.5-eclipse-temurin-21 as builder
+FROM llsilvas/java21-maven-otel:latest as builder
 WORKDIR /app
 
 ## Copia o pom.xml e baixa as dependências
@@ -15,6 +15,7 @@ WORKDIR /app
 ARG JAR_FILE=target/*.jar
 COPY ${JAR_FILE} app.jar
 
+#COPY /opentelemetry-javaagent.jar /app/opentelemetry-javaagent.jar
 
 RUN ls -la
 # Extrai as camadas usando o novo modo tools
@@ -31,7 +32,9 @@ FROM eclipse-temurin:21-jre-jammy as runtime
 WORKDIR /app
 
 #COPY --from=builder /app/target/*.jar app.jar
-COPY --from=builder /app/*.jar app.jar
+COPY --from=builder /app/app.jar /app/app.jar
+COPY --from=builder /opt/opentelemetry-javaagent.jar /app/opentelemetry-javaagent.jar
+
 
 # Copia as camadas extraídas
 COPY --from=builder /app/dependencies/ ./
@@ -40,9 +43,10 @@ COPY --from=builder /app/snapshot-dependencies/ ./
 COPY --from=builder /app/application/ ./
 
 # Define variáveis de ambiente
-ENV SPRING_PROFILES_ACTIVE=""
-ENV LOKI_URL="loki"
+ENV SPRING_PROFILES_ACTIVE=${SPRING_PROFILES_ACTIVE}
+ENV LOKI_URL=${LOKI_URL}
 ENV KEYCLOAK_AUTH_SERVER_URL=${KEYCLOAK_AUTH_SERVER_URL}
+ENV KEYCLOAK_URL=${KEYCLOAK_URL}
 ENV KEYCLOAK_JWK_SET_URI=${KEYCLOAK_JWK_SET_URI}
 ENV KEYCLOAK_ISSUER_URI=${KEYCLOAK_ISSUER_URI}
 ENV SPRING_CONFIG_SERVER=${SPRING_CONFIG_SERVER}
@@ -51,4 +55,5 @@ ENV SPRING_CONFIG_SERVER=${SPRING_CONFIG_SERVER}
 EXPOSE 8091
 
 # Inicia a aplicação com o launcher do Spring Boot
-ENTRYPOINT ["java", "-jar", "app.jar", "--spring.profiles.active=${SPRING_PROFILES_ACTIVE}"]
+#CMD ["java", "-javaagent:/app/opentelemetry-javaagent.jar", "-jar", "/app/myapp.jar"]
+ENTRYPOINT ["java", "-javaagent:/app/opentelemetry-javaagent.jar","-jar", "app.jar", "--spring.profiles.active=${SPRING_PROFILES_ACTIVE}"]
