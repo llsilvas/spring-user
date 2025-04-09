@@ -28,16 +28,16 @@ public class SecurityConfig {
                         .requestMatchers("/actuator/**").permitAll()
                         .requestMatchers("/user/swagger-ui/**").permitAll()
                         .requestMatchers("/user/swagger-ui.html").permitAll()
-                        .requestMatchers("/user/api-docs/**").permitAll()
-                        .requestMatchers("/api/users/public/**").permitAll()
+                        .requestMatchers("/user-docs/**").permitAll()
+                        .requestMatchers("/users/public/**").permitAll()
                         // Endpoints administrativos (somente ADMIN)
-                        .requestMatchers("/api/users/admin/**").hasRole("ADMIN")
+                        .requestMatchers("/users/admin/**").hasRole("ADMIN")
                         // Endpoints organizadores (somente ORGANIZADOR)
-                        .requestMatchers("/api/users/organizador/**").hasRole("ORGANIZADOR")
+                        .requestMatchers("/users/organizador/**").hasRole("ORGANIZADOR")
                         // Endpoints participantes (somente PARTICIPANTE)
-                        .requestMatchers("/api/users/participante/**").hasRole("PARTICIPANTE")
+                        .requestMatchers("/users/participante/**").hasRole("PARTICIPANTE")
                         // Endpoints acessíveis ao usuário autenticado
-                        .requestMatchers("/api/users/me/**").authenticated()
+                        .requestMatchers("/users/me/**").authenticated()
                         .anyRequest().authenticated() // Qualquer outra requisição deve estar autenticada
                 )
                 .oauth2ResourceServer(oauth2 -> oauth2

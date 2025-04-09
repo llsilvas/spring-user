@@ -22,7 +22,7 @@ import java.util.Map;
 @Slf4j
 @Getter
 @RestController
-@RequestMapping("/api/users")
+@RequestMapping("/users")
 public class UserController {
 
     @Value("${app.message:Config not loaded}")
