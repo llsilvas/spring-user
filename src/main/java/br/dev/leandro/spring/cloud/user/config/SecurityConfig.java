@@ -1,6 +1,7 @@
 package br.dev.leandro.spring.cloud.user.config;
 
 import br.dev.leandro.spring.cloud.user.converter.CustomJwtAuthenticationConverter;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -12,12 +13,19 @@ import org.springframework.security.config.annotation.web.configurers.AbstractHt
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationConverter;
 import org.springframework.security.web.SecurityFilterChain;
 
+/**
+ * Security configuration for the application.
+ * Uses CustomJwtAuthenticationConverter to extract roles from JWT tokens.
+ */
 @Slf4j
 @Configuration
 @Profile("!test")
 @EnableWebSecurity
 @EnableMethodSecurity
+@RequiredArgsConstructor
 public class SecurityConfig {
+
+    private final CustomJwtAuthenticationConverter customJwtAuthenticationConverter;
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
@@ -51,7 +59,8 @@ public class SecurityConfig {
     @Bean
     public JwtAuthenticationConverter jwtAuthenticationConverter() {
         JwtAuthenticationConverter converter = new JwtAuthenticationConverter();
-        converter.setJwtGrantedAuthoritiesConverter(new CustomJwtAuthenticationConverter());
+        converter.setJwtGrantedAuthoritiesConverter(customJwtAuthenticationConverter);
+        log.debug("Configured JWT authentication converter with custom authorities converter");
         return converter;
     }
 }

@@ -35,7 +35,6 @@ WORKDIR /app
 COPY --from=builder /app/app.jar /app/app.jar
 COPY --from=builder /opt/opentelemetry-javaagent.jar /app/opentelemetry-javaagent.jar
 
-
 # Copia as camadas extraídas
 COPY --from=builder /app/dependencies/ ./
 COPY --from=builder /app/spring-boot-loader/ ./

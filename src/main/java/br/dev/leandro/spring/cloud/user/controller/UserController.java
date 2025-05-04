@@ -109,7 +109,7 @@ public class UserController {
         Span newSpan = tracer.nextSpan().name("hello-span").start();
         try {
             // Simulando um processamento
-            Thread.sleep(100);
+            Thread.sleep(5000);
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
         } finally {
