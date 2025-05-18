@@ -22,7 +22,16 @@ public record UserDto(
         String password,
 
         @NotBlank(message = "Role não pode estar vazio")
-        String role) {
+        String role,
+
+        @NotBlank(message = "Nome da organização não pode ser vazio")
+        String organizationName,
+
+        @NotBlank(message = "Telefone não pode ser nulo")
+        String contactPhone,
+
+        @NotBlank(message = "Numero do documento nao pode ser nulo.")
+        String documentNumber) {
 }
 
 

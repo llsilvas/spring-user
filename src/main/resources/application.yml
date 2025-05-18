@@ -65,14 +65,15 @@ otel:
     exporter: none
   metrics:
     exporter: none
-
+event:
+  url: "http://spring-event-service:8092/organizers"
 logging:
   pattern:
     correlation: '%X{traceId:-} %X{spanId:-}'
     level: '%-5level [${spring.application.name}]'
   include-application-name: true
   level:
-    root: DEBUG
+    root: INFO
     org.springframework.web: INFO
     org.springframework.boot: INFO
     org.springframework.security: INFO
@@ -83,7 +84,6 @@ logging:
     io.opentelemetry: INFO
     io.micrometer: INFO
 
-debug: true
 
 
 

@@ -1,5 +1,6 @@
 package br.dev.leandro.spring.cloud.user.service;
 
+import br.dev.leandro.spring.cloud.user.dto.OrganizerCreateDto;
 import br.dev.leandro.spring.cloud.user.dto.UserDto;
 import br.dev.leandro.spring.cloud.user.dto.UserUpdateDto;
 import br.dev.leandro.spring.cloud.user.exception.ResourceNotFoundException;
@@ -9,6 +10,7 @@ import jakarta.validation.constraints.NotNull;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.tomcat.websocket.AuthenticationException;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.cloud.context.config.annotation.RefreshScope;
 import org.springframework.http.HttpStatusCode;
 import org.springframework.stereotype.Service;
@@ -28,6 +30,9 @@ public class UserService {
     public static final String ERRO_INESPERADO_AO_ATUALIZAR_USUARIO = "Erro inesperado ao atualizar usuário";
     private final WebClientUtils webClientUtils;
 
+    @Value("${event.url:http://localhost:8080/event}")
+    private String eventUrl;
+
     public UserService(WebClientUtils webClientUtils) {
         this.webClientUtils = webClientUtils;
     }
@@ -45,7 +50,8 @@ public class UserService {
                                     if (location != null) {
                                         String userId = location.substring(location.lastIndexOf("/") + 1);
                                         log.info("User ID extraído: {}", userId);
-                                        return assignRoleToUser(userId, userDto.role());
+                                        return assignRoleToUser(userId, userDto.role())
+                                                .then(registerOrganizer(userId, userDto, token));
                                     }
                                     return Mono.error(new RuntimeException("Header Location não encontrado"));
                                 }
@@ -59,6 +65,29 @@ public class UserService {
                     log.error(ERRO_INESPERADO_AO_ADICIONAR_USUARIO, e);
                     return Mono.error(e); // Propaga a exceção original sem adicionar prefixos adicionais
                 });
+
+    }
+
+    private Mono<Void> registerOrganizer(String userId, UserDto userDto, String token) {
+        if(!userDto.role().equalsIgnoreCase("ORGANIZADOR")){
+            return Mono.empty();
+        }
+
+        OrganizerCreateDto organizer = new OrganizerCreateDto(
+                userId,
+                userDto.organizationName(),
+                userDto.email(),
+                userDto.contactPhone(),
+                userDto.documentNumber());
+
+        return webClientUtils.createPostRequest(token,
+                eventUrl,
+                organizer,
+                Collections.emptyMap())
+                .retrieve()
+                .bodyToMono(Void.class)
+                .doOnSuccess(v -> log.info("Organizer {} registrado com sucesso!", userDto.organizationName()))
+                .doOnError(e -> log.error("Erro ao registrar organizador {}: {}", userDto.organizationName(), e.getMessage()));
 
     }
 

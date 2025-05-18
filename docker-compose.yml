@@ -6,10 +6,10 @@ services:
       resources:
         limits:
           cpus: '0.5'
-          memory: 256M
+          memory: 512M
         reservations:
           cpus: '0.5'
-          memory: 128M
+          memory: 256M
     ports:
       - "8091:8091"
     environment:

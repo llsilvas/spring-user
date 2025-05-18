@@ -185,7 +185,7 @@ class UserServiceIT {
                     .willReturn(aResponse()
                             .withStatus(500)));
 
-            userDto = new UserDto("test_user", "test@example.com", "Test", "User", "password123", "test-role");
+            userDto = new UserDto("test_user", "test@example.com", "Test", "User", "password123", "test-role", "Teste Organização", "11 3333-3333", "1122334455-45");
 
             // Chamada do método
             Mono<Void> result = userService.createUser(userDto);
@@ -208,7 +208,7 @@ class UserServiceIT {
                     .willReturn(aResponse()
                             .withStatus(401)));
 
-            userDto = new UserDto("test_user", "test@example.com", "Test", "User", "password123", "test-role");
+            userDto = new UserDto("test_user", "test@example.com", "Test", "User", "password123", "test-role", "Teste Organização", "11 3333-3333", "1122334455-45");
 
             // Chamada do método
             Mono<Void> result = userService.createUser(userDto);
@@ -276,7 +276,7 @@ class UserServiceIT {
                             .withStatus(500)
                             .withBody("Erro interno ao atribuir role")));
 
-            userDto = new UserDto("test_user", "test@example.com", "Test", "User", "password123", "test-role");
+            userDto = new UserDto("test_user", "test@example.com", "Test", "User", "password123", "test-role", "Teste Organização", "11 3333-3333", "1122334455-45");
 
             // Chamada do método
             Mono<Void> result = userService.createUser(userDto);
@@ -561,7 +561,7 @@ class UserServiceIT {
 
     @NotNull
     private static UserDto getUserDto() {
-        return new UserDto("test_user", "test@example.com", "Test", "User", "password123", "role");
+        return new UserDto("test_user", "test@example.com", "Test", "User", "password123", "role", "Teste Organização", "11 3333-3333", "1122334455-45");
     }
 
     private static UserUpdateDto getUserUpdateDto() {
