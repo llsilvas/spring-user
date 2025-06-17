@@ -3,6 +3,7 @@ package br.dev.leandro.spring.cloud.user.service.integration;
 import br.dev.leandro.spring.cloud.user.config.WebClientTestConfig;
 import br.dev.leandro.spring.cloud.user.dto.UserDto;
 import br.dev.leandro.spring.cloud.user.dto.UserUpdateDto;
+import br.dev.leandro.spring.cloud.user.exception.AssignRoleException;
 import br.dev.leandro.spring.cloud.user.exception.ResourceNotFoundException;
 import br.dev.leandro.spring.cloud.user.service.UserService;
 import com.github.tomakehurst.wiremock.WireMockServer;
@@ -10,13 +11,14 @@ import com.github.tomakehurst.wiremock.client.WireMock;
 import com.github.tomakehurst.wiremock.http.Fault;
 import com.github.tomakehurst.wiremock.junit5.WireMockTest;
 import jakarta.validation.constraints.NotNull;
-import org.apache.tomcat.websocket.AuthenticationException;
 import org.junit.jupiter.api.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.core.env.Environment;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.security.core.AuthenticationException;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
@@ -216,7 +218,7 @@ class UserServiceIT {
             // Verificação com StepVerifier
             StepVerifier.create(result)
                     .expectErrorSatisfies(throwable -> {
-                        assertInstanceOf(AuthenticationException.class, throwable);
+                        assertInstanceOf(BadCredentialsException.class, throwable);
                         assertEquals("Token inválido ou expirado.", throwable.getMessage());
                     })
                     .verify();
@@ -284,8 +286,8 @@ class UserServiceIT {
             // Verificação com StepVerifier
             StepVerifier.create(result)
                     .expectErrorSatisfies(throwable -> {
-                        assertInstanceOf(RuntimeException.class, throwable);
-                        assertTrue(throwable.getMessage().contains("Erro interno no Keycloak."));
+                        assertInstanceOf(AssignRoleException.class, throwable);
+                        assertTrue(throwable.getMessage().contains("Não foi possível atribuir o papel"));
                     })
                     .verify();
 

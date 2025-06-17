@@ -5,7 +5,9 @@
     <springProperty name="logPatternCorrelation" source="logging.pattern.correlation" defaultValue="%X{traceId:-MISSING},%X{spanId:-MISSING}"/>
     <springProperty name="logPatternLevel" source="logging.pattern.level" defaultValue="%5p [%X{traceId:-MISSING},%X{spanId:-MISSING}]"/>
 
-    <!-- Console Appender (Logs no terminal) -->
+    <!-- =============================== -->
+    <!-- Appender Console (sempre ativo) -->
+    <!-- =============================== -->
     <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
         <encoder>
             <pattern>
@@ -14,33 +16,50 @@
         </encoder>
     </appender>
 
-    <!-- Loki Appender (Logs enviados ao Loki) -->
-    <appender name="LOKI" class="com.github.loki4j.logback.Loki4jAppender">
-        <http>
-            <url>http://loki:3100/loki/api/v1/push</url>
-        </http>
-        <format>
-            <label>
-                <pattern>application=${name},host=${HOSTNAME},level=%level,traceId=%X{traceId:-MISSING},spanId=%X{spanId:-MISSING}</pattern>
-                <readMarkers>true</readMarkers>
-            </label>
-            <message>
-                <pattern>
-                    {
-                    "level": "%level",
-                    "class": "%logger{36}",
-                    "thread": "%thread",
-                    "message": "%msg",
-                    "correlation": "${logPatternCorrelation}"
-                    }
-                </pattern>
-            </message>
-        </format>
-    </appender>
+    <!-- =============================== -->
+    <!-- Appender Loki (ambientes com observabilidade) -->
+    <!-- =============================== -->
+    <springProfile name="docker,dev,prod">
+        <appender name="LOKI" class="com.github.loki4j.logback.Loki4jAppender">
+            <http>
+                <url>http://loki:3100/loki/api/v1/push</url>
+            </http>
+            <format>
+                <label>
+                    <pattern>application=${name},host=${HOSTNAME},level=%level,traceId=%X{traceId:-MISSING},spanId=%X{spanId:-MISSING}</pattern>
+                    <readMarkers>true</readMarkers>
+                </label>
+                <message>
+                    <pattern>
+                        {
+                        "level": "%level",
+                        "class": "%logger{36}",
+                        "thread": "%thread",
+                        "message": "%msg",
+                        "correlation": "${logPatternCorrelation}"
+                        }
+                    </pattern>
+                </message>
+            </format>
+        </appender>
+    </springProfile>
 
-    <!-- Configuração padrão -->
-    <root level="${logLevel}">
-        <appender-ref ref="CONSOLE"/>
-        <appender-ref ref="LOKI"/>
-    </root>
+    <!-- =============================== -->
+    <!-- Root logger para Docker, Dev e Prod -->
+    <!-- =============================== -->
+    <springProfile name="docker,dev,prod">
+        <root level="${logLevel}">
+            <appender-ref ref="CONSOLE"/>
+            <appender-ref ref="LOKI"/>
+        </root>
+    </springProfile>
+
+    <!-- =============================== -->
+    <!-- Root logger para Local e Testes -->
+    <!-- =============================== -->
+    <springProfile name="local,test">
+        <root level="${logLevel}">
+            <appender-ref ref="CONSOLE"/>
+        </root>
+    </springProfile>
 </configuration>

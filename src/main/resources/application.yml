@@ -26,8 +26,8 @@ spring:
     oauth2:
       resourceserver:
         jwt:
-          issuer-uri: http://${KEYCLOAK_URL}:8443/realms/event-management
-          jwk-set-uri: http://${KEYCLOAK_URL}:8443/realms/event-management/protocol/openid-connect/certs
+          issuer-uri: http://${KEYCLOAK_URL:localhost}:8443/realms/event-management
+          jwk-set-uri: http://${KEYCLOAK_URL:localhost}:8443/realms/event-management/protocol/openid-connect/certs
   keycloak:
     admin:
       client-id: ${KEYCLOAK_CLIENT_ID:user-service-admin}
@@ -66,7 +66,8 @@ otel:
   metrics:
     exporter: none
 event:
-  url: "http://spring-event-service:8092/organizers"
+  url: ${EVENT_SERVICE_URL:http://localhost:8092}
+  organizer-path: /events/organizers
 logging:
   pattern:
     correlation: '%X{traceId:-} %X{spanId:-}'
@@ -83,7 +84,6 @@ logging:
     org.keycloak: INFO
     io.opentelemetry: INFO
     io.micrometer: INFO
-
-
+    reactor.netty.http.server: INFO
 
 

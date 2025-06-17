@@ -3,18 +3,23 @@ package br.dev.leandro.spring.cloud.user.service;
 import br.dev.leandro.spring.cloud.user.dto.OrganizerCreateDto;
 import br.dev.leandro.spring.cloud.user.dto.UserDto;
 import br.dev.leandro.spring.cloud.user.dto.UserUpdateDto;
+import br.dev.leandro.spring.cloud.user.exception.AssignRoleException;
 import br.dev.leandro.spring.cloud.user.exception.ResourceNotFoundException;
 import br.dev.leandro.spring.cloud.user.exception.handler.WebClientErrorHandler;
 import br.dev.leandro.spring.cloud.user.utils.WebClientUtils;
 import jakarta.validation.constraints.NotNull;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.tomcat.websocket.AuthenticationException;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.cloud.context.config.annotation.RefreshScope;
 import org.springframework.http.HttpStatusCode;
+import org.springframework.http.MediaType;
+import org.springframework.security.core.AuthenticationException;
 import org.springframework.stereotype.Service;
+import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Mono;
+import reactor.netty.http.client.PrematureCloseException;
 
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
@@ -28,13 +33,18 @@ public class UserService {
 
     public static final String ERRO_INESPERADO_AO_ADICIONAR_USUARIO = "Erro inesperado ao adicionar usuário";
     public static final String ERRO_INESPERADO_AO_ATUALIZAR_USUARIO = "Erro inesperado ao atualizar usuário";
+    private static final String ADMIN_REALMS_REALM_USERS = "/admin/realms/{realm}/users";
     private final WebClientUtils webClientUtils;
+    private final WebClient eventClient;
 
-    @Value("${event.url:http://localhost:8080/event}")
+    @Value("${event.url}")
     private String eventUrl;
+    @Value("${event.organizer-path}")
+    private String organizerPath;
 
-    public UserService(WebClientUtils webClientUtils) {
+    public UserService(WebClientUtils webClientUtils, @Qualifier("eventWebClient") WebClient eventClient) {
         this.webClientUtils = webClientUtils;
+        this.eventClient = eventClient;
     }
 
     public Mono<Void> createUser(UserDto userDto) {
@@ -42,7 +52,7 @@ public class UserService {
                 .flatMap(token -> {
                     log.info("Token JWT obtido com sucesso: {}", token);
                     Map<String, Object> user = buildUserPayload(userDto);
-                    return webClientUtils.createPostRequest(token, "/admin/realms/{realm}/users", user, null)
+                    return webClientUtils.createPostRequest(token, ADMIN_REALMS_REALM_USERS, user, null)
                             .exchangeToMono(response -> {
                                 if (response.statusCode().is2xxSuccessful()) {
                                     String location = response.headers().asHttpHeaders().getFirst("Location");
@@ -51,7 +61,7 @@ public class UserService {
                                         String userId = location.substring(location.lastIndexOf("/") + 1);
                                         log.info("User ID extraído: {}", userId);
                                         return assignRoleToUser(userId, userDto.role())
-                                                .then(registerOrganizer(userId, userDto, token));
+                                                .then(registerOrganizer(userId, userDto));
                                     }
                                     return Mono.error(new RuntimeException("Header Location não encontrado"));
                                 }
@@ -68,8 +78,8 @@ public class UserService {
 
     }
 
-    private Mono<Void> registerOrganizer(String userId, UserDto userDto, String token) {
-        if(!userDto.role().equalsIgnoreCase("ORGANIZADOR")){
+    private Mono<Void> registerOrganizer(String userId, UserDto userDto) {
+        if (!"ORGANIZADOR".equalsIgnoreCase(userDto.role())) {
             return Mono.empty();
         }
 
@@ -78,25 +88,29 @@ public class UserService {
                 userDto.organizationName(),
                 userDto.email(),
                 userDto.contactPhone(),
-                userDto.documentNumber());
+                userDto.documentNumber()
+        );
 
-        return webClientUtils.createPostRequest(token,
-                eventUrl,
-                organizer,
-                Collections.emptyMap())
+        return eventClient.post()
+                .uri(organizerPath)
+                .contentType(MediaType.APPLICATION_JSON)
+                .bodyValue(organizer)
                 .retrieve()
-                .bodyToMono(Void.class)
-                .doOnSuccess(v -> log.info("Organizer {} registrado com sucesso!", userDto.organizationName()))
-                .doOnError(e -> log.error("Erro ao registrar organizador {}: {}", userDto.organizationName(), e.getMessage()));
-
+                .toBodilessEntity()
+                .onErrorMap(PrematureCloseException.class, ex ->
+                        new RuntimeException("Serviço de Eventos indisponível, tente novamente mais tarde", ex))
+                .doOnError(RuntimeException.class, ex ->
+                        log.warn("Evento: registro de organizer falhou: {}", ex.getMessage()))
+                .then();
     }
+
 
     public Mono<Void> updateUser(String id, UserUpdateDto userUpdateDto) {
         return webClientUtils.getAdminAccessToken()
                 .flatMap(token -> {
                     Map<String, Object> payload = buildUpdateUserPayload(userUpdateDto);
 
-                    return webClientUtils.createPutRequest(token, "/admin/realms/{realm}/users/{id}", payload, Map.of("id", id))
+                    return webClientUtils.createPutRequest(token, ADMIN_REALMS_REALM_USERS + "/{id}", payload, Map.of("id", id))
                             .exchangeToMono(response -> {
                                 if (response.statusCode().is2xxSuccessful()) {
                                     return response.bodyToMono(Void.class)
@@ -119,7 +133,7 @@ public class UserService {
     public Mono<Void> deleteUser(String id) {
         return webClientUtils.getAdminAccessToken()
                 .flatMap(token ->
-                        webClientUtils.createDeleteRequest(token, "/admin/realms/{realm}/users/{id}", Map.of("id", id))
+                        webClientUtils.createDeleteRequest(token, ADMIN_REALMS_REALM_USERS + "/{id}", Map.of("id", id))
                                 .exchangeToMono(response -> {
                                     if (response.statusCode().is2xxSuccessful()) {
                                         return Mono.empty();
@@ -154,7 +168,7 @@ public class UserService {
 
                                     // Atribuir role ao usuário
                                     return webClientUtils.createPostRequest(token,
-                                                    "/admin/realms/{realm}/users/{userId}/role-mappings/realm",
+                                                    ADMIN_REALMS_REALM_USERS + "/{userId}/role-mappings/realm",
                                                     Collections.singletonList(Map.of("id", roleId, "name", roleName)),
                                                     uriVariables)
                                             .exchangeToMono(response -> {
@@ -162,7 +176,20 @@ public class UserService {
                                                     return response.bodyToMono(Void.class);
                                                 }
                                                 return WebClientErrorHandler.handleErrorStatus(response);
-                                            });
+                                            }).onErrorResume(e -> {
+                                                // 1) Logue o erro
+                                                log.error("Falha ao atribuir role '{}' ao usuário {}: {}", roleName, userId, e.getMessage());
+                                                // 2) Retorne um Mono que propaga uma exceção específica
+                                                return Mono.error(new AssignRoleException(
+                                                        "Não foi possível atribuir o papel '" + roleName + "' ao usuário. Tente novamente mais tarde."
+                                                ));
+                                            }).onErrorMap(IllegalStateException.class, ex -> {
+                                                if (ex.getMessage().contains("completed without emitting a response")) {
+                                                    return new RuntimeException("Erro de comunicação com serviço de eventos. Verifique se o token foi enviado.");
+                                                }
+                                                return ex;
+                                            })
+                                            ;
                                 })
                 )
                 .onErrorResume(e -> {
@@ -216,7 +243,7 @@ public class UserService {
 
     private Mono<Void> setUserPassword(String id, String password, String token) {
         return webClientUtils.createPutRequest(token,
-                        "/admin/realms/{realm}/users/{id}/reset-password",
+                        ADMIN_REALMS_REALM_USERS + "/{id}/reset-password",
                         Map.of(
                                 "type", "password",
                                 "value", password,
@@ -228,7 +255,7 @@ public class UserService {
 
     public Mono<UserDto> findUserById(String id) {
         return webClientUtils.getAdminAccessToken()
-                .flatMap(token -> webClientUtils.createGetRequest(token, "/admin/realms/{realm}/users/{id}", Map.of("id", id))
+                .flatMap(token -> webClientUtils.createGetRequest(token, ADMIN_REALMS_REALM_USERS + "/{id}", Map.of("id", id))
                         .retrieve()
                         .onStatus(HttpStatusCode::isError, response -> {
                             log.error("Erro ao buscar o usuário por ID: {}", id);
@@ -258,7 +285,7 @@ public class UserService {
 
         return webClientUtils.getAdminAccessToken()
                 .flatMap(token -> {
-                    String finalUrl = "/admin/realms/{realm}/users?search=" + URLEncoder.encode(search, StandardCharsets.UTF_8);
+                    String finalUrl = ADMIN_REALMS_REALM_USERS + "?search=" + URLEncoder.encode(search, StandardCharsets.UTF_8);
 
                     log.info("Chamando Keycloak: {} com parâmetros: {}", finalUrl, queryParams);
 
@@ -268,7 +295,7 @@ public class UserService {
                             .collectList()
                             .doOnNext(users -> log.info("Usuários retornados do Keycloak: {}", users));
 
-                    Mono<Integer> countMono = webClientUtils.createGetRequest(token, "/admin/realms/{realm}/users/count")
+                    Mono<Integer> countMono = webClientUtils.createGetRequest(token, ADMIN_REALMS_REALM_USERS + "/count")
                             .retrieve()
                             .bodyToMono(String.class) // Obtém a resposta como String
                             .map(body -> {

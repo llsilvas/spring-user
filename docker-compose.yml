@@ -27,6 +27,7 @@ services:
       - OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4318
       - OTEL_LOGS_EXPORTER=none
       - OTEL_METRICS_EXPORTER=none  # Desativa o envio de métricas
+      - EVENT_SERVICE_URL=${EVENT_SERVICE_URL}
     restart: unless-stopped
     networks:
       - labs

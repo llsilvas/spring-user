@@ -2,12 +2,14 @@ package br.dev.leandro.spring.cloud.user.utils;
 
 import br.dev.leandro.spring.cloud.user.keycloak.KeycloakProperties;
 import lombok.extern.log4j.Log4j2;
-import org.apache.tomcat.websocket.AuthenticationException;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.HttpStatusCode;
 import org.springframework.http.MediaType;
+import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.security.core.AuthenticationException;
 import org.springframework.stereotype.Component;
 import org.springframework.web.reactive.function.BodyInserters;
 import org.springframework.web.reactive.function.client.WebClient;
@@ -30,7 +32,7 @@ public class WebClientUtils {
     private final String clientSecret;
 
     @Autowired
-    public WebClientUtils(WebClient webClient, KeycloakProperties keycloakProperties) {
+    public WebClientUtils(@Qualifier("keycloakWebClient") WebClient webClient, KeycloakProperties keycloakProperties) {
         this.webClient = webClient;
         this.realm = keycloakProperties.getRealm();
         this.clientId = keycloakProperties.getClientId();
@@ -101,7 +103,7 @@ public class WebClientUtils {
                 .retrieve()
                 .onStatus(HttpStatusCode::is4xxClientError, response -> {
                     if (response.statusCode() == HttpStatus.UNAUTHORIZED) {
-                        return Mono.error(new AuthenticationException("Token inválido ou expirado."));
+                        return Mono.error(new BadCredentialsException("Token inválido ou expirado."));
                     }
                     return response.createException().flatMap(Mono::error);
                 })
